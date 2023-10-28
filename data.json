@@ -1,4 +1,10 @@
 {
-    "last-check": "2023-10-27 23:31:08.360369",
-    "old-ip": "test"
+    "check-status": {
+        "os": "MacOS",
+        "last-check": "2023-10-28 11:21:35.547486"
+    },
+    "update-status": {
+        "last-update": "2023-10-28 11:21:35.547486",
+        "old-ip": "50.46.233.251"
+    }
 }
