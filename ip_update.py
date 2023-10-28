@@ -38,14 +38,13 @@ def send_email (currentIP,now,os):
 def current_data ():
     # Opening JSON file
     f = open('data.json')
-    
-    # returns JSON object as 
-    # a dictionary
+    # returns JSON object as a dictionary
     data = json.load(f)
     f.close()
     return data
 
 def osCheck ():
+    # Will check which OS has made the last check
     if sys.platform.startswith('linux'):
         os = "Linux"
     elif sys.platform.startswith('darwin'):
@@ -56,11 +55,10 @@ def osCheck ():
 
 
 if __name__ == '__main__':
-    data = current_data()
-    currentIP = check_ip ()
-    os = osCheck ()
-
-    now = str(datetime.now())
+    data = current_data() # Load JSON function
+    currentIP = check_ip () # Get current data
+    os = osCheck () # Check OS
+    now = str(datetime.now()) # Get current time
 
     data['check-status']['last-check'] = now
     data['check-status']['os'] = os
@@ -72,4 +70,3 @@ if __name__ == '__main__':
 
     with open('data.json', 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
-
