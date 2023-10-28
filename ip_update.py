@@ -50,8 +50,8 @@ if __name__ == '__main__':
     if currentIP != data['old-ip']:
         send_email (currentIP,str(datetime.now()))
         data['last-check'] = str(datetime.now())
-        data['old-ip'] = 'test'
-        # data['old-ip'] = currentIP
+        # data['old-ip'] = 'test'
+        data['old-ip'] = currentIP
 
         with open('data.json', 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
