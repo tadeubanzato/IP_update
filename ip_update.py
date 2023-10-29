@@ -3,14 +3,10 @@
 # ip_udate.py
 # Google hyotoko pass: qqzugdeqjpvzvoge
 
-import json
+import smtplib, ssl, json, sys
 from requests import get
-import smtplib, ssl
 from email.message import EmailMessage
 from datetime import datetime
-from sys import platform
-import sys
-
 
 def check_ip ():
     ip = get('https://api.ipify.org').text
