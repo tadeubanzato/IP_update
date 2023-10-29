@@ -128,7 +128,7 @@ def osCheck ():
         os = "Windows"
     return os
 ```
-# Mais script execution
+# Main script execution
 The script is essentially executed in the __main__ part of the code where essentially calls all the needed functions described above and check if the IP has changed or not.
 If the IP did not change it will only update the `check-status` portion of the JSON file and nothing else.
 If the IP has changed both `update-status` and `check-status` will change with the new data and the update check dates including OS.
