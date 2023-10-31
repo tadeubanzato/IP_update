@@ -61,16 +61,20 @@ def osCheck ():
     return os
 
 if __name__ == '__main__':
-    data = current_data() # Load JSON function
     currentIP = check_ip () # Get current data
-    os = osCheck () # Check OS
+    osrun = osCheck () # Check OS
     now = str(datetime.now()) # Get current time
 
-    data['check-status']['last-check'] = now
-    data['check-status']['os'] = os
+    # Checks if data.jason file exists
+    if os.path.isfile('data.json'):
+        data = current_data() # Load JSON function
+        data['check-status']['last-check'] = now
+        data['check-status']['os'] = osrun
+    else:
+        data = {'check-status': {'os': osrun, 'last-check': now},'update-status': {'last-update': now,'old-ip': ''}}
 
     if currentIP != data['update-status']['old-ip']:
-        send_email (currentIP,now,os)
+        send_email (currentIP,now,osrun)
         data['update-status']['last-update'] = now
         data['update-status']['old-ip'] = currentIP
 
