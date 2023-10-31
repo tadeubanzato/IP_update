@@ -10,17 +10,26 @@ from requests import get
 from email.message import EmailMessage
 from datetime import datetime
 
+## Don't foget to create a .env file with the information
+## google-pass = GOOGLE APP PASSWORD (see readme)
+## sender-email = SENDER EMAIL
+## receiver-email = RECEIVER EMAIL
+load_dotenv() # load .env information
+sender = os.environ.get("sender-email")
+receiver = os.environ.get("receiver-email")
+google = os.environ.get("google-pass")
+
 def check_ip ():
     ip = get('https://api.ipify.org').text
     # print('My public IP address is: {}'.format(ip))
     return ip
 
-def send_email (currentIP,now,os):
+def send_email (currentIP,now,os):    
     port = 465  # For SSL
     smtp_server = "smtp.gmail.com"
-    sender_email = os.environ.get("sender-email")  # Load sender email from .env
-    receiver_email = os.environ.get("receiver-email")  # Load receiver email from .env
-    password = os.environ.get("google-pass") # Load password from .env
+    sender_email = sender  # Load sender email from .env
+    receiver_email = receiver  # Load receiver email from .env
+    password = google # Load password from .env
 
     msg = EmailMessage()
     msg.set_content(f"Hyotoko's IP was updated by the ISP, make sure to use the most updated version on your VPN.\n\nInformation checked from {os}\nLast updated check was: {now}\nNew IP is: {currentIP}\n\nUpdate checks happens every 2 hours, the IP might have updated sooner.")
@@ -51,15 +60,7 @@ def osCheck ():
         os = "Windows"
     return os
 
-
 if __name__ == '__main__':
-    ## Don't foget to create a .env file with the information
-    ## google-pass = GOOGLE APP PASSWORD (see readme)
-    ## sender-email = SENDER EMAIL
-    ## receiver-email = RECEIVER EMAIL
-
-    load_dotenv() # load .env information
-
     data = current_data() # Load JSON function
     currentIP = check_ip () # Get current data
     os = osCheck () # Check OS
