@@ -53,6 +53,11 @@ def osCheck ():
 
 
 if __name__ == '__main__':
+    ## Don't foget to create a .env file with the information
+    ## google-pass = GOOGLE APP PASSWORD (see readme)
+    ## sender-email = SENDER EMAIL
+    ## receiver-email = RECEIVER EMAIL
+
     load_dotenv() # load .env information
 
     data = current_data() # Load JSON function
