@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # ip_udate.py
+# Google hyotoko pass: qqzugdeqjpvzvoge
 
 from dotenv import load_dotenv
+
 import smtplib, ssl, json, sys, os
 from requests import get
 from email.message import EmailMessage
@@ -13,6 +15,9 @@ from datetime import datetime
 ## sender-email = SENDER EMAIL
 ## receiver-email = RECEIVER EMAIL
 load_dotenv() # load .env information
+sender = os.environ.get("sender-email")
+receiver = os.environ.get("receiver-email")
+google = os.environ.get("google-pass")
 
 def check_ip ():
     ip = get('https://api.ipify.org').text
@@ -22,9 +27,9 @@ def check_ip ():
 def send_email (currentIP,now,os):    
     port = 465  # For SSL
     smtp_server = "smtp.gmail.com"
-    sender_email = os.environ.get("sender-email")  # Load sender email from .env
-    receiver_email = os.environ.get("receiver-email")  # Load receiver email from .env
-    password = os.environ.get("google-pass") # Load password from .env
+    sender_email = sender  # Load sender email from .env
+    receiver_email = receiver  # Load receiver email from .env
+    password = google # Load password from .env
 
     msg = EmailMessage()
     msg.set_content(f"Hyotoko's IP was updated by the ISP, make sure to use the most updated version on your VPN.\n\nInformation checked from {os}\nLast updated check was: {now}\nNew IP is: {currentIP}\n\nUpdate checks happens every 2 hours, the IP might have updated sooner.")
@@ -56,7 +61,6 @@ def osCheck ():
     return os
 
 if __name__ == '__main__':
-
     currentIP = check_ip () # Get current data
     osrun = osCheck () # Check OS
     now = str(datetime.now()) # Get current time
