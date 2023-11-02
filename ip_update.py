@@ -8,6 +8,12 @@ from requests import get
 from email.message import EmailMessage
 from datetime import datetime
 
+## Don't foget to create a .env file with the information
+## google-pass = GOOGLE APP PASSWORD (see readme)
+## sender-email = SENDER EMAIL
+## receiver-email = RECEIVER EMAIL
+load_dotenv() # load .env information
+
 def check_ip ():
     ip = get('https://api.ipify.org').text
     # print('My public IP address is: {}'.format(ip))
@@ -50,12 +56,6 @@ def osCheck ():
     return os
 
 if __name__ == '__main__':
-    
-    ## Don't foget to create a .env file with the information
-    ## google-pass = GOOGLE APP PASSWORD (see readme)
-    ## sender-email = SENDER EMAIL
-    ## receiver-email = RECEIVER EMAIL
-    load_dotenv() # load .env information
 
     currentIP = check_ip () # Get current data
     osrun = osCheck () # Check OS
