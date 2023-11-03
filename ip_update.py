@@ -21,7 +21,7 @@ google = os.environ.get("google-pass")
 
 def check_ip ():
     ip = get('https://api.ipify.org').text
-    # print('My public IP address is: {}'.format(ip))
+    print('My public IP address is: {}'.format(ip))
     return ip
 
 def send_email (currentIP,now,os):    
