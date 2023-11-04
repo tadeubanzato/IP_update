@@ -9,22 +9,34 @@ import smtplib, ssl, json, sys, os
 from requests import get
 from email.message import EmailMessage
 from datetime import datetime
+import geocoder
 
 ## Don't foget to create a .env file with the information
 ## google-pass = GOOGLE APP PASSWORD (see readme)
 ## sender-email = SENDER EMAIL
 ## receiver-email = RECEIVER EMAIL
+
 load_dotenv() # load .env information
 sender = os.environ.get("sender-email")
 receiver = os.environ.get("receiver-email")
 google = os.environ.get("google-pass")
 
+
 def check_ip ():
     ip = get('https://api.ipify.org').text
-    print('My public IP address is: {}'.format(ip))
+    print(f'My public IP address is: {ip}')
     return ip
 
-def send_email (currentIP,now,os):    
+def find_location():
+    # g.city
+    # g.state
+    # g.state_long
+    # g.country
+    # g.country_long
+    return geocoder.ip('me')
+
+def send_email (currentIP,now,os,location):
+    location = find_location()
     port = 465  # For SSL
     smtp_server = "smtp.gmail.com"
     sender_email = sender  # Load sender email from .env
@@ -32,8 +44,8 @@ def send_email (currentIP,now,os):
     password = google # Load password from .env
 
     msg = EmailMessage()
-    msg.set_content(f"Hyotoko's IP was updated by the ISP, make sure to use the most updated version on your VPN.\n\nInformation checked from {os}\nLast updated check was: {now}\nNew IP is: {currentIP}\n\nUpdate checks happens every 2 hours, the IP might have updated sooner.")
-    msg['Subject'] = f"📡 Hyotoko IP just got updated"
+    msg.set_content(f"Hello there,\n\nThis is an automated message from your server Hyotoko, do not reply.\nA new WAN IP was setup by your ISP in {location.city} - {location.country}, make sure to use the most updated IP on your VPN.\n\nLast update check: {now}\nCurrent location: {location.city}, {location.state} - {location.country}\nInformation checked from: {os}\n\nNew IP\n---------------------------\n{currentIP}\n---------------------------\n\nUpdates will check every 2 hours after any power outage or server fail to connect to the internet.")
+    msg['Subject'] = f"⚡️ Hyotoko IP just got updated from {location.country}"
     msg['From'] = sender_email
     msg['To'] = receiver_email
 
@@ -60,23 +72,52 @@ def osCheck ():
         os = "Windows"
     return os
 
+def deltaT(delta):
+    if round(delta.total_seconds(),2) < 60:
+        deltax = f'{round(delta.total_seconds(),2)} seconds'
+    elif round(delta.total_seconds(), 2) >= 60 and round(delta.total_seconds() / 60, 2) < 60:
+        deltax = f'{round(delta.total_seconds() / 60, 2)} minutes'
+    elif round(delta.total_seconds() / 60, 2) >= 60 and round(delta.total_seconds() / (60*60),2) < 24:
+        deltax = f'{round(delta.total_seconds() / (60*60), 2)} hours'
+    elif round(delta.total_seconds() / (60*60),2) >= 24:
+        deltax = f'{round((delta.total_seconds() / (60*60)) / 24, 2)} days' 
+    else:
+        deltax = "Faz uma caralhada"
+    return deltax
+
 if __name__ == '__main__':
     currentIP = check_ip () # Get current data
-    osrun = osCheck () # Check OS
-    now = str(datetime.now()) # Get current time
+    runOS = osCheck()
+    location = find_location()
 
-    # Checks if data.jason file exists
+    data = {"time-delta": 0, "os": runOS, "location": {"city": "", "state": "", "country": ""},"old-status": {"old-date": "", "old-ts": 0, "old-ip": ""},"new-status": {"new-date": "", "new-ts": 0, "new-ip": ""}}
     if os.path.isfile('data.json'):
-        data = current_data() # Load JSON function
-        data['check-status']['last-check'] = now
-        data['check-status']['os'] = osrun
-    else:
-        data = {'check-status': {'os': osrun, 'last-check': now},'update-status': {'last-update': now,'old-ip': ''}}
+        data = current_data()
+        delta = deltaT(datetime.fromtimestamp(datetime.now().timestamp()) - datetime.fromtimestamp(data['new-status']['new-ts']))
+        if currentIP != data['new-status']['new-ip']:
+            send_email (currentIP,datetime.now(),runOS,location)
+            data['time-delta'] = delta
 
-    if currentIP != data['update-status']['old-ip']:
-        send_email (currentIP,now,osrun)
-        data['update-status']['last-update'] = now
-        data['update-status']['old-ip'] = currentIP
+            # Swap Old Data
+            data['old-status']['old-date'] = data['new-status']['new-date']
+            data['old-status']['old-ts'] = data['new-status']['new-ts']
+            data['old-status']['old-ip'] = data['new-status']['new-ip']
+
+            # Update New Data
+            data['new-status']['new-date'] = str(datetime.now())
+            data['new-status']['new-ts'] = datetime.now().timestamp()
+            data['new-status']['new-ip'] = currentIP
+
+        else:
+            data['time-delta'] = delta
+            data['new-status']['new-date'] = str(datetime.now())
+            data['new-status']['new-ts'] = datetime.now().timestamp()
+            data['new-status']['new-ip'] = currentIP
+    
+    data['os'] = runOS
+    data['location']['city'] = location.city
+    data['location']['state'] = location.state
+    data['location']['country'] = location.country
 
     with open('data.json', 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
