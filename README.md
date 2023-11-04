@@ -4,61 +4,16 @@ I case of update/change the script will send an email to the designated email wi
 
 The IP will be saved in JSON file in order to compare with the older IP and in case of change will send the notificatoin.
 
-## JSON file
-```json
-{
-    "check-status": {
-        "os": "MacOS",
-        "last-check": "2023-10-28 11:21:35.547486"
-    },
-    "update-status": {
-        "last-update": "2023-10-28 11:21:35.547486",
-        "old-ip": "123.123.123.123"
-    }
-}
-```
-As I'm using this script in multiple OS I also want to record which Operational System is executing the IP check.
-`"os": "MacOS",`
-
-The script records the last check even if it the IP has not changed, so you can verify if the script is working properly.
-`"last-check": "2023-10-28 11:21:35.547486"`
-
-The update status will show the last time any change has happened in the WAN IP.
-```json
-    "update-status": {
-        "last-update": "2023-10-28 11:21:35.547486",
-        "old-ip": "123.123.123.123"
-    }
-```
-## Python Dependencies
-Python dependencies are:
-- smtplig
-- ssl
-- json
-- sys
-- requests
-- datetime
+## python-dotenv configuration
+The credentials for this script are loaded using the python-detenv.
+You need to create a `.env` file in the root folder of the project in the file you need to add the following lines with our sender email, receiver email and your google 16 digits password.
 
 ```python
-import smtplib, ssl, json, sys
-from requests import get
-from email.message import EmailMessage
-from datetime import datetime
+google-pass = <google 16 digits password>
+sender-email = <sender email>
+receiver-email = <receiver email>
 ```
-to install any dependencies use the command
-```python
-pip3 instal <depedency name>
-```
-
-### SMTP outgoing email using Google
-The script is developed to use Google as the outgoing SMTP server.
-```python
-port = 465  # For SSL
-smtp_server = "smtp.gmail.com"
-sender_email = "youremail@gmail.com"  # Enter your address
-receiver_email = "youremail@gmail.com"  # Enter receiver address
-password = "16-digits-code-from-google"
-```
+### To get your 16 digits password
 To get the Google 16 digits password you need to go follow the next steps:
 1. Login to your Google Account https://myaccount.google.com
 2. Click on security on the left menu https://myaccount.google.com/security
@@ -68,6 +23,56 @@ To get the Google 16 digits password you need to go follow the next steps:
 6. Create an app name and click Create
 7. A popup window will show with your 16 digits password
 Save this password so you can update on the IP Check Script
+Direct link: https://myaccount.google.com/apppasswords?pli=1&rapt=AEjHL4O9FsLO4KIpWFl7veDJgjyfNA-2rPxmvgVm9E5NnlcK3kogsLF99FlMeGHUXDVorvZVuC1gYpsZR3mSk8Oy5CXqG7g9UA
+
+## JSON file
+
+The python script will update automatically the JSON file with the latest date the IP got updated, and will record the old IP information just for reference
+
+```json
+{
+    "time-delta": "18.37 seconds",
+    "os": "MacOS",
+    "location": {
+        "city": "Redmond",
+        "state": "Washington",
+        "country": "US"
+    },
+    "old-status": {
+        "old-date": "2023-11-03 19:01:53.051185",
+        "old-ts": 1699063313.051191,
+        "old-ip": "123.123.123.123"
+    },
+    "new-status": {
+        "new-date": "2023-11-03 19:02:12.973720",
+        "new-ts": 1699063332.973764,
+        "new-ip": "321.312.321.321"
+    }
+}
+```
+
+## Python Dependencies
+Python dependencies are:
+* geocoder==1.38.1
+* python-dotenv==1.0.0
+* Requests==2.31.0
+
+```python
+import smtplib, ssl, json, sys
+from requests import get
+from email.message import EmailMessage
+from datetime import datetime
+```
+
+To install dependencies simply run the below command in the same folder of the project
+`pip install -r requirements.txt`
+
+In case you want to install dependencies manually follow the pip command below.
+```python
+pip3 instal <depedency name>
+```
+
+The dependencies were easely exported using PipReqs https://pypi.org/project/pipreqs/
 
 ### check_ip function
 The check IP function is pretty straightforward and will use https://api.ipify.org to check the device current WAM IP and return the string variable with it.
