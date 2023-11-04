@@ -13,6 +13,16 @@ google-pass = <google 16 digits password>
 sender-email = <sender email>
 receiver-email = <receiver email>
 ```
+
+To loade the environment credentials from the .env file
+
+```python
+load_dotenv() # load .env information
+sender = os.environ.get("sender-email")
+receiver = os.environ.get("receiver-email")
+google = os.environ.get("google-pass")
+```
+
 ### To get your 16 digits password
 To get the Google 16 digits password you need to go follow the next steps:
 1. Login to your Google Account https://myaccount.google.com
@@ -89,9 +99,9 @@ This function is responsible to send the email with the new IP information once 
 def send_email (currentIP,now,os):
     port = 465  # For SSL
     smtp_server = "smtp.gmail.com"
-    sender_email = "tadeubanzato@gmail.com"  # Enter your address
-    receiver_email = "tadeubanzato@gmail.com"  # Enter receiver address
-    password = "qqzugdeqjpvzvoge"
+    sender_email = sender  # Load sender email from .env
+    receiver_email = receiver  # Load receiver email from .env
+    password = google # Load password from .env
 
     msg = EmailMessage()
     msg.set_content(f"Hyotoko's IP was updated by the ISP, make sure to use the most updated version on your VPN.\n\nInformation checked from {os}\nLast updated check was: {now}\nNew IP is: {currentIP}\n\nUpdate checks happens every 2 hours, the IP might have updated sooner.")
