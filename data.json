@@ -1,5 +1,5 @@
 {
-    "time-delta": "18.37 seconds",
+    "time-delta": "22.9 seconds",
     "os": "MacOS",
     "location": {
         "city": "Redmond",
@@ -7,13 +7,13 @@
         "country": "US"
     },
     "old-status": {
-        "old-date": "2023-11-03 19:01:53.051185",
-        "old-ts": 1699063313.051191,
-        "old-ip": "XYZ"
+        "old-date": "2024-03-07 18:18:34.070039",
+        "old-ts": 1709864314.070043,
+        "old-ip": "50.35.3810"
     },
     "new-status": {
-        "new-date": "2023-11-03 19:02:12.973720",
-        "new-ts": 1699063332.973764,
-        "new-ip": "XXXXXX YYYYYYY GGGGGGG"
+        "new-date": "2024-03-07 18:18:58.524061",
+        "new-ts": 1709864338.524069,
+        "new-ip": "50.35.38.10"
     }
 }

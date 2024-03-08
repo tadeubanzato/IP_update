@@ -5,6 +5,7 @@
 
 from dotenv import load_dotenv
 
+from push_notification import send_push
 import smtplib, ssl, json, sys, os
 from requests import get
 from email.message import EmailMessage
@@ -20,6 +21,8 @@ load_dotenv() # load .env information
 sender = os.environ.get("sender-email")
 receiver = os.environ.get("receiver-email")
 google = os.environ.get("google-pass")
+user = os.environ.get("pushover-user")
+token = os.environ.get("pushover-token")
 
 
 def check_ip ():
@@ -96,6 +99,7 @@ if __name__ == '__main__':
         delta = deltaT(datetime.fromtimestamp(datetime.now().timestamp()) - datetime.fromtimestamp(data['new-status']['new-ts']))
         if currentIP != data['new-status']['new-ip']:
             send_email (currentIP,datetime.now(),runOS,location)
+            send_push (user,token,currentIP,datetime.now(),runOS,location)
             data['time-delta'] = delta
 
             # Swap Old Data
