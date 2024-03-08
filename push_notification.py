@@ -7,7 +7,7 @@ import requests
 def send_push(user,token,currentIP,date,os,location):
     payload = {"message": f'New IP for Hyotoko in {location.city} - {currentIP} updated {date}', "user": user, "token": token}
     requests.post('https://api.pushover.net/1/messages.json', data=payload, headers={'User-Agent': 'This is a test'})
-    print(f'New IP for Hyotoko ({currentIP}), updated {date} in {location.city} - {os}')
+    print(f'New IP for Hyotoko in {location.city} - {currentIP} updated {date}')
 
 
 # ### IFTTT
