@@ -41,7 +41,9 @@ The python script will update automatically the JSON file with the latest date t
 
 ```json
 {
-    "time-delta": "18.37 seconds",
+    "processTime": 1.3879907090013148,
+    "time-delta": "28.11 seconds",
+    "processDate": "2024-03-11 22:26:43.763455",
     "os": "MacOS",
     "location": {
         "city": "Redmond",
@@ -49,14 +51,14 @@ The python script will update automatically the JSON file with the latest date t
         "country": "US"
     },
     "old-status": {
-        "old-date": "2023-11-03 19:01:53.051185",
-        "old-ts": 1699063313.051191,
-        "old-ip": "123.123.123.123"
+        "old-date": "2024-03-11 22:26:14.586708",
+        "old-ts": 1710221174.586719,
+        "old-ip": "XX.XX.XX.XX"
     },
     "new-status": {
-        "new-date": "2023-11-03 19:02:12.973720",
-        "new-ts": 1699063332.973764,
-        "new-ip": "321.312.321.321"
+        "new-date": "2024-03-11 22:26:43.763442",
+        "new-ts": 1710221203.763448,
+        "new-ip": "XX.XX.XX.XX"
     }
 }
 ```
