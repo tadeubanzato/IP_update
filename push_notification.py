@@ -1,7 +1,3 @@
-### PUSHOVER
-# import sys
-# import os
-# import requests
 import requests
 
 def send_push(user,token,currentIP,date,os,location):
