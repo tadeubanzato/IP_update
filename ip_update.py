@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 # ip_udate.py
 
-from dotenv import load_dotenv
+from push_notification import send_push # Push Notification Enablement
 
-from push_notification import send_push
+from dotenv import load_dotenv
 import smtplib, ssl, json, sys, os, ssl, timeit
 from requests import get
 from email.message import EmailMessage
@@ -25,7 +25,7 @@ token = os.environ.get("pushover-token")
 
 def check_ip ():
     ip = get('https://api.ipify.org').text
-    print(f'My public IP address is: {ip}')
+    print(f'This machine public IP address is: {ip}')
     return ip
 
 def find_location():
