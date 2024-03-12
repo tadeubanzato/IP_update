@@ -6,7 +6,7 @@
 from dotenv import load_dotenv
 
 from push_notification import send_push
-import smtplib, ssl, json, sys, os, timeit
+import smtplib, ssl, json, sys, os, ssl, timeit
 from requests import get
 from email.message import EmailMessage
 from datetime import datetime
@@ -93,7 +93,8 @@ if __name__ == '__main__':
     runOS = osCheck()
     location = find_location()
 
-    data = {"time-delta": 0,"processTime": 0, "processDate": 0, "os": runOS, "location": {"city": "", "state": "", "country": ""},"old-status": {"old-date": "", "old-ts": 0, "old-ip": ""},"new-status": {"new-date": "", "new-ts": 0, "new-ip": ""}}
+    # data = {"time-delta": 0, "processTime": 0, "processDate": 0, "os": runOS, "location": {"city": "", "state": "", "country": ""},"old-status": {"old-date": "", "old-ts": 0, "old-ip": ""},"new-status": {"new-date": "", "new-ts": 0, "new-ip": ""}}
+    data = {"processTime": 0, "time-delta": 0, "processDate": 0, "os": 0, "location": {"city": 0, "state": 0, "country": 0}, "old-status": {"old-date": 0, "old-ts": 0, "old-ip": 0}, "new-status": {"new-date": 0, "new-ts": 0, "new-ip": 0}}
     if os.path.isfile('data.json'):
         data = current_data()
         delta = deltaT(datetime.fromtimestamp(datetime.now().timestamp()) - datetime.fromtimestamp(data['new-status']['new-ts']))
@@ -119,14 +120,13 @@ if __name__ == '__main__':
             data['new-status']['new-ip'] = currentIP
     
 
-    
-    data['processDate'] = datetime.now()
+    end_time = timeit.default_timer()
+    data['processTime'] = end_time - start_time
+    data['processDate'] = str(datetime.now())
     data['os'] = runOS
     data['location']['city'] = location.city
     data['location']['state'] = location.state
     data['location']['country'] = location.country
-    end_time = timeit.default_timer()
-    data['processTime'] = end_time - start_time
 
     with open('data.json', 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
