@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # ip_udate.py
-# Google hyotoko pass: qqzugdeqjpvzvoge
 
 from dotenv import load_dotenv
 
@@ -88,20 +87,27 @@ def deltaT(delta):
     return deltax
 
 if __name__ == '__main__':
-    start_time = timeit.default_timer()
-    currentIP = check_ip () # Get current data
-    runOS = osCheck()
-    location = find_location()
 
-    # data = {"time-delta": 0, "processTime": 0, "processDate": 0, "os": runOS, "location": {"city": "", "state": "", "country": ""},"old-status": {"old-date": "", "old-ts": 0, "old-ip": ""},"new-status": {"new-date": "", "new-ts": 0, "new-ip": ""}}
-    data = {"processTime": 0, "time-delta": 0, "processDate": 0, "os": runOS, "location": {"city": 0, "state": 0, "country": 0}, "old-status": {"old-date": 0, "old-ts": 0, "old-ip": 0}, "new-status": {"new-date": 0, "new-ts": 0, "new-ip": 0}}
-    if os.path.isfile('data.json'):
-        data = current_data()
-        delta = deltaT(datetime.fromtimestamp(datetime.now().timestamp()) - datetime.fromtimestamp(data['new-status']['new-ts']))
+    start_time = timeit.default_timer() # Start Process Timer
+    processDate = str(datetime.now()) # Current Process Time
+    currentIP = check_ip () # Get Current IP
+    runOS = osCheck() # Check OS (linux, mac, pc)
+    location = find_location() # Get IP's Geolocation
+
+    if not os.path.isfile('data.json'):
+        end_time = timeit.default_timer()
+        data = {"processDate": processDate, "processTime": end_time - start_time, "time-delta": "N/A", "os": runOS, "location": {"city": location.city, "state": location.state, "country": location.country}, "old-status": {"old-date": "N/A", "old-ts": "N/A", "old-ip": "N/A"}, "new-status": {"new-date": str(datetime.now()), "new-ts": datetime.now().timestamp(), "new-ip": currentIP}}
+    else:
+        data = current_data() # Get current JSON information
         if currentIP != data['new-status']['new-ip']:
-            send_email (currentIP,datetime.now(),runOS,location)
-            send_push (user,token,currentIP,datetime.now(),runOS,location)
-            data['time-delta'] = delta
+            # Build New Data and Swap Old
+            data['processDate'] = str(datetime.now())
+            deltaT = str(deltaT(datetime.fromtimestamp(datetime.now().timestamp()) - datetime.fromtimestamp(data['new-status']['new-ts'])))
+            data['time-delta'] = deltaT
+            data['os'] = runOS
+            data['location']['city'] = location.city
+            data['location']['state'] = location.state
+            data['location']['country'] = location.country
 
             # Swap Old Data
             data['old-status']['old-date'] = data['new-status']['new-date']
@@ -113,20 +119,15 @@ if __name__ == '__main__':
             data['new-status']['new-ts'] = datetime.now().timestamp()
             data['new-status']['new-ip'] = currentIP
 
+            # Send Email and Push Notification
+            send_email (currentIP,datetime.now(),runOS,location)
+            send_push (user,token,currentIP,datetime.now(),runOS,location)
+
+            end_time = timeit.default_timer()
+            data['processTime'] = end_time - start_time
         else:
-            data['time-delta'] = delta
-            data['new-status']['new-date'] = str(datetime.now())
-            data['new-status']['new-ts'] = datetime.now().timestamp()
-            data['new-status']['new-ip'] = currentIP
-    
+            print(f'Current IP remains the same: {currentIP}')
 
-    end_time = timeit.default_timer()
-    data['processTime'] = end_time - start_time
-    data['processDate'] = str(datetime.now())
-    data['os'] = runOS
-    data['location']['city'] = location.city
-    data['location']['state'] = location.state
-    data['location']['country'] = location.country
-
+    # Save JSON file with identation and UTF-8 encoding
     with open('data.json', 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
