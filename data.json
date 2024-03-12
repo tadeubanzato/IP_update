@@ -1,7 +1,7 @@
 {
-    "processTime": 1.978590582999459,
-    "time-delta": "19794.27 days",
-    "processDate": "2024-03-11 22:24:52.400522",
+    "processTime": 1.3879907090013148,
+    "time-delta": "28.11 seconds",
+    "processDate": "2024-03-11 22:26:43.763455",
     "os": "MacOS",
     "location": {
         "city": "Redmond",
@@ -9,13 +9,13 @@
         "country": "US"
     },
     "old-status": {
-        "old-date": 0,
-        "old-ts": 0,
-        "old-ip": 0
+        "old-date": "2024-03-11 22:26:14.586708",
+        "old-ts": 1710221174.586719,
+        "old-ip": "50.35"
     },
     "new-status": {
-        "new-date": "2024-03-11 22:24:52.400509",
-        "new-ts": 1710221092.400515,
+        "new-date": "2024-03-11 22:26:43.763442",
+        "new-ts": 1710221203.763448,
         "new-ip": "50.35.38.10"
     }
 }

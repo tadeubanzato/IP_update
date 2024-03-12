@@ -94,7 +94,7 @@ if __name__ == '__main__':
     location = find_location()
 
     # data = {"time-delta": 0, "processTime": 0, "processDate": 0, "os": runOS, "location": {"city": "", "state": "", "country": ""},"old-status": {"old-date": "", "old-ts": 0, "old-ip": ""},"new-status": {"new-date": "", "new-ts": 0, "new-ip": ""}}
-    data = {"processTime": 0, "time-delta": 0, "processDate": 0, "os": 0, "location": {"city": 0, "state": 0, "country": 0}, "old-status": {"old-date": 0, "old-ts": 0, "old-ip": 0}, "new-status": {"new-date": 0, "new-ts": 0, "new-ip": 0}}
+    data = {"processTime": 0, "time-delta": 0, "processDate": 0, "os": runOS, "location": {"city": 0, "state": 0, "country": 0}, "old-status": {"old-date": 0, "old-ts": 0, "old-ip": 0}, "new-status": {"new-date": 0, "new-ts": 0, "new-ip": 0}}
     if os.path.isfile('data.json'):
         data = current_data()
         delta = deltaT(datetime.fromtimestamp(datetime.now().timestamp()) - datetime.fromtimestamp(data['new-status']['new-ts']))
