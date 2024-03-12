@@ -96,7 +96,7 @@ if __name__ == '__main__':
 
     if not os.path.isfile('data.json'):
         end_time = timeit.default_timer()
-        data = {"processDate": processDate, "processTime": end_time - start_time, "time-delta": "N/A", "os": runOS, "location": {"city": location.city, "state": location.state, "country": location.country}, "old-status": {"old-date": "N/A", "old-ts": "N/A", "old-ip": "N/A"}, "new-status": {"new-date": str(datetime.now()), "new-ts": datetime.now().timestamp(), "new-ip": currentIP}}
+        data = {"processDate": processDate, "processTime": end_time - start_time, "time-delta": "N/A", "emailSent":"N/A", "pushSent":"N/A", "os": runOS, "location": {"city": location.city, "state": location.state, "country": location.country}, "old-status": {"old-date": "N/A", "old-ts": "N/A", "old-ip": "N/A"}, "new-status": {"new-date": str(datetime.now()), "new-ts": datetime.now().timestamp(), "new-ip": currentIP}}
     else:
         data = current_data() # Get current JSON information
         if currentIP != data['new-status']['new-ip']:
@@ -108,6 +108,13 @@ if __name__ == '__main__':
             data['location']['city'] = location.city
             data['location']['state'] = location.state
             data['location']['country'] = location.country
+            # Send Email and Push Notification
+            send_email (currentIP,datetime.now(),runOS,location)
+            emailSent = str(datetime.now())
+            send_push (user,token,currentIP,datetime.now(),runOS,location)
+            pushSent = str(datetime.now())
+            data['emailSent'] = emailSent
+            data['pushSent'] = pushSent
 
             # Swap Old Data
             data['old-status']['old-date'] = data['new-status']['new-date']
@@ -119,12 +126,10 @@ if __name__ == '__main__':
             data['new-status']['new-ts'] = datetime.now().timestamp()
             data['new-status']['new-ip'] = currentIP
 
-            # Send Email and Push Notification
-            send_email (currentIP,datetime.now(),runOS,location)
-            send_push (user,token,currentIP,datetime.now(),runOS,location)
-
             end_time = timeit.default_timer()
             data['processTime'] = end_time - start_time
+
+
         else:
             print(f'Current IP remains the same: {currentIP}')
 

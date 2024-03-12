@@ -1,7 +1,9 @@
 {
-    "processTime": 1.3879907090013148,
-    "time-delta": "28.11 seconds",
-    "processDate": "2024-03-11 22:26:43.763455",
+    "processDate": "2024-03-12 16:07:58.083954",
+    "processTime": 0.6150894579999431,
+    "time-delta": "N/A",
+    "emailSent": "N/A",
+    "pushSent": "N/A",
     "os": "MacOS",
     "location": {
         "city": "Redmond",
@@ -9,13 +11,13 @@
         "country": "US"
     },
     "old-status": {
-        "old-date": "2024-03-11 22:26:14.586708",
-        "old-ts": 1710221174.586719,
-        "old-ip": "50.35"
+        "old-date": "N/A",
+        "old-ts": "N/A",
+        "old-ip": "N/A"
     },
     "new-status": {
-        "new-date": "2024-03-11 22:26:43.763442",
-        "new-ts": 1710221203.763448,
+        "new-date": "2024-03-12 16:07:58.699059",
+        "new-ts": 1710284878.699081,
         "new-ip": "50.35.38.10"
     }
 }
