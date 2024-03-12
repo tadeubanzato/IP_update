@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # ip_udate.py
+# Google hyotoko pass: qqzugdeqjpvzvoge
 
 from dotenv import load_dotenv
 
 from push_notification import send_push
-import smtplib, ssl, json, sys, os
+import smtplib, ssl, json, sys, os, timeit
 from requests import get
 from email.message import EmailMessage
 from datetime import datetime
@@ -22,7 +23,6 @@ receiver = os.environ.get("receiver-email")
 google = os.environ.get("google-pass")
 user = os.environ.get("pushover-user")
 token = os.environ.get("pushover-token")
-
 
 def check_ip ():
     ip = get('https://api.ipify.org').text
@@ -88,11 +88,12 @@ def deltaT(delta):
     return deltax
 
 if __name__ == '__main__':
+    start_time = timeit.default_timer()
     currentIP = check_ip () # Get current data
     runOS = osCheck()
     location = find_location()
 
-    data = {"time-delta": 0, "os": runOS, "location": {"city": "", "state": "", "country": ""},"old-status": {"old-date": "", "old-ts": 0, "old-ip": ""},"new-status": {"new-date": "", "new-ts": 0, "new-ip": ""}}
+    data = {"time-delta": 0,"processTime": 0, "processDate": 0, "os": runOS, "location": {"city": "", "state": "", "country": ""},"old-status": {"old-date": "", "old-ts": 0, "old-ip": ""},"new-status": {"new-date": "", "new-ts": 0, "new-ip": ""}}
     if os.path.isfile('data.json'):
         data = current_data()
         delta = deltaT(datetime.fromtimestamp(datetime.now().timestamp()) - datetime.fromtimestamp(data['new-status']['new-ts']))
@@ -117,10 +118,15 @@ if __name__ == '__main__':
             data['new-status']['new-ts'] = datetime.now().timestamp()
             data['new-status']['new-ip'] = currentIP
     
+
+    
+    data['processDate'] = datetime.now()
     data['os'] = runOS
     data['location']['city'] = location.city
     data['location']['state'] = location.state
     data['location']['country'] = location.country
+    end_time = timeit.default_timer()
+    data['processTime'] = end_time - start_time
 
     with open('data.json', 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
