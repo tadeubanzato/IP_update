@@ -6,7 +6,7 @@ from push_notification import send_push # Push Notification Enablement
 
 from dotenv import load_dotenv
 import smtplib, ssl, json, sys, os, ssl, timeit
-from requests import get
+import requests
 from email.message import EmailMessage
 from datetime import datetime
 import geocoder
@@ -23,10 +23,15 @@ google = os.environ.get("google-pass")
 user = os.environ.get("pushover-user")
 token = os.environ.get("pushover-token")
 
-def check_ip ():
-    ip = get('https://api.ipify.org').text
-    print(f'This machine public IP address is: {ip}')
-    return ip
+def check_ip():
+    try: 
+        response = requests.get('https://api.ipify.org') 
+        if response.status_code == 200: 
+            return response.text 
+        else: 
+            return "Error: Unable to retrieve public IP address" 
+    except Exception as e: 
+        return f"Error: {e}" 
 
 def find_location():
     # g.city
@@ -34,9 +39,14 @@ def find_location():
     # g.state_long
     # g.country
     # g.country_long
-    return geocoder.ip('me')
+    try:
+        location = geocoder.ip('me')
+        return location
+    except Exception as e: 
+        return f"Error: {e}"
+        
 
-def send_email (currentIP,now,os,location):
+def send_email(currentIP,now,os,location):
     location = find_location()
     port = 465  # For SSL
     smtp_server = "smtp.gmail.com"
@@ -55,7 +65,7 @@ def send_email (currentIP,now,os,location):
         server.login(sender_email, password)
         server.send_message(msg, from_addr=sender_email, to_addrs=receiver_email)
 
-def current_data ():
+def current_data():
     # Opening JSON file
     f = open('data.json')
     # returns JSON object as a dictionary
@@ -63,7 +73,7 @@ def current_data ():
     f.close()
     return data
 
-def osCheck ():
+def osCheck():
     # Will check which OS has made the last check
     if sys.platform.startswith('linux'):
         os = "Linux"
@@ -90,48 +100,47 @@ if __name__ == '__main__':
 
     start_time = timeit.default_timer() # Start Process Timer
     processDate = str(datetime.now()) # Current Process Time
-    currentIP = check_ip () # Get Current IP
     runOS = osCheck() # Check OS (linux, mac, pc)
+    currentIP = check_ip() # Get Current IP
     location = find_location() # Get IP's Geolocation
 
     if not os.path.isfile('data.json'):
-        end_time = timeit.default_timer()
-        data = {"processDate": processDate, "processTime": end_time - start_time, "time-delta": "N/A", "emailSent":"N/A", "pushSent":"N/A", "os": runOS, "location": {"city": location.city, "state": location.state, "country": location.country}, "old-status": {"old-date": "N/A", "old-ts": "N/A", "old-ip": "N/A"}, "new-status": {"new-date": str(datetime.now()), "new-ts": datetime.now().timestamp(), "new-ip": currentIP}}
+        data = {"last-run":{"os":runOS,"processDate":processDate,"processTime":0,"time-delta":"N/A","notification-sent":str(datetime.now()),"location":{"city":location.city,"state":location.state,"country":location.country}},"new-update":{"new-status":{"new-date":str(datetime.now()),"new-ts":datetime.now().timestamp(),"new-ip":check_ip ()}},"old-status":{[]}}
     else:
         data = current_data() # Get current JSON information
+        OldData={}
         if currentIP != data['new-status']['new-ip']:
+            print(f'New IP: {currentIP}')
+
             # Build New Data and Swap Old
-            data['processDate'] = str(datetime.now())
+            data['last-run']['os'] = runOS
+            data['last-run']['processDate'] = processDate
             deltaT = str(deltaT(datetime.fromtimestamp(datetime.now().timestamp()) - datetime.fromtimestamp(data['new-status']['new-ts'])))
-            data['time-delta'] = deltaT
-            data['os'] = runOS
-            data['location']['city'] = location.city
-            data['location']['state'] = location.state
-            data['location']['country'] = location.country
+            data['last-run']['time-delta'] = deltaT
+            data['last-run']['location']['city'] = location.city
+            data['last-run']['location']['state'] = location.state
+            data['last-run']['location']['country'] = location.country
+
             # Send Email and Push Notification
             send_email (currentIP,datetime.now(),runOS,location)
-            emailSent = str(datetime.now())
             send_push (user,token,currentIP,datetime.now(),runOS,location)
-            pushSent = str(datetime.now())
-            data['emailSent'] = emailSent
-            data['pushSent'] = pushSent
+            data['last-run']['notification-sent'] = str(datetime.now())
 
             # Swap Old Data
-            data['old-status']['old-date'] = data['new-status']['new-date']
-            data['old-status']['old-ts'] = data['new-status']['new-ts']
-            data['old-status']['old-ip'] = data['new-status']['new-ip']
+            OldData = {processDate:{"old-date": data['new-status']['new-date'],"old-ts": data['new-status']['new-ts'],"old-ip": data['new-status']['new-ip']}}
+            data['old-status'][processDate] = OldData
 
             # Update New Data
-            data['new-status']['new-date'] = str(datetime.now())
+            data['new-status']['new-date'] = processDate
             data['new-status']['new-ts'] = datetime.now().timestamp()
             data['new-status']['new-ip'] = currentIP
 
-            end_time = timeit.default_timer()
-            data['processTime'] = end_time - start_time
-
-
         else:
-            print(f'Current IP remains the same: {currentIP}')
+            print(f'Current IP remains the same')
+
+    # End time processing
+    end_time = timeit.default_timer()
+    data['last-run']['processTime'] = end_time - start_time
 
     # Save JSON file with identation and UTF-8 encoding
     with open('data.json', 'w', encoding='utf-8') as f:
