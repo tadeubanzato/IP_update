@@ -33,18 +33,13 @@ def check_ip():
     except Exception as e: 
         return f"Error: {e}" 
 
-def find_location():
-    # g.city
-    # g.state
-    # g.state_long
-    # g.country
-    # g.country_long
+def get_geoL(currentIP):
+    # GeoLocation from https://ip-api.com/docs/api:json
     try:
-        location = geocoder.ip('me')
-        return location
+        geoResp = requests.get(f'http://ip-api.com/json/{currentIP}')
+        return geoResp.json()
     except Exception as e: 
         return f"Error: {e}"
-        
 
 def send_email(currentIP,now,os,location):
     print(f'Sending email to: {receiver}')
@@ -103,16 +98,15 @@ if __name__ == '__main__':
     processDate = str(datetime.now()) # Current Process Time
     runOS = osCheck() # Check OS (linux, mac, pc)
     currentIP = check_ip() # Get Current IP
-    location = find_location() # Get IP's Geolocation
+    location = get_geoL(currentIP) # Get IP's Geolocation
 
     if not os.path.isfile('data.json'):
-        data = {"last-run":{"os":runOS, "ip-update": False, "processDate":processDate,"processTime":0,"time-delta":"N/A","notification-sent":str(datetime.now()),"location":{"city":location.city,"state":location.state,"country":location.country}},"new-update":{"new-status":{"new-date":str(datetime.now()),"new-ts":datetime.now().timestamp(),"new-ip":check_ip ()}},"old-status":{[]}}
+        data = {"last-run":{"os":runOS, "ip-update": False, "processDate":processDate,"processTime":0,"time-delta":"N/A","notification-sent":str(datetime.now()),"location":location},"new-status":{"new-date":str(datetime.now()),"new-ts":datetime.now().timestamp(),"new-ip":check_ip ()},"old-status":{}}
     else:
         data = current_data() # Get current JSON information
         OldData={}
         if currentIP != data['new-status']['new-ip']:
-            print(f'\n{"-"*20}\nYour ISP updated your\n\n 
-                  You : {location.city} - {currentIP} updated {datetime.now().strftime("%D")}')
+            print(f'\n\nISP UPDATES\n\n{location["org"]} - updated your IP\nLast update: {datetime.now()}\nLocation: {location["city"]} - {location["region"]}, {location["countryCode"]}\n\nYour new IP:\n{"-"*13}\n{currentIP}\n{"-"*13}\n')
 
             # Build New Data and Swap Old
             data['last-run']['os'] = runOS
@@ -120,9 +114,7 @@ if __name__ == '__main__':
             data['last-run']['processDate'] = processDate
             deltaT = str(deltaT(datetime.fromtimestamp(datetime.now().timestamp()) - datetime.fromtimestamp(data['new-status']['new-ts'])))
             data['last-run']['time-delta'] = deltaT
-            data['last-run']['location']['city'] = location.city
-            data['last-run']['location']['state'] = location.state
-            data['last-run']['location']['country'] = location.country
+            data['last-run']['location'] = location
 
             # Send Email and Push Notification
             send_email (currentIP,datetime.now(),runOS,location)
@@ -130,7 +122,8 @@ if __name__ == '__main__':
             data['last-run']['notification-sent'] = str(datetime.now())
 
             # Swap Old Data
-            OldData = {processDate:{"old-date": data['new-status']['new-date'],"old-ts": data['new-status']['new-ts'],"old-ip": data['new-status']['new-ip']}}
+            # OldData = {processDate:{"old-date": data['new-status']['new-date'],"old-ts": data['new-status']['new-ts'],"old-ip": data['new-status']['new-ip']}}
+            OldData = {"old-ts": data['new-status']['new-ts'],"old-ip": data['new-status']['new-ip']}
             data['old-status'][processDate] = OldData
 
             # Update New Data
