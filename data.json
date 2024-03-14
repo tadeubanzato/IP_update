@@ -1,18 +1,20 @@
 {
     "last-run": {
         "os": "MacOS",
-        "ip-update": true,
-        "processDate": "2024-03-13 18:46:13.350263",
-        "processTime": 1.988924374999442,
-        "time-delta": "1.1 minutes",
-        "notification-sent": "2024-03-13 18:46:15.339160",
+        "ip-update": false,
+        "processDate": "2024-03-13 19:51:09.448997",
+        "processTime": 0.253409916000237,
+        "time-delta": "1.08 hours",
+        "notification-sent": "2024-03-13 19:51:11.759558",
         "location": {
         }
     },
     "new-status": {
-        "new-date": "2024-03-13 18:46:13.350263",
-        "new-ts": 1710380775.339186,
-        "new-ip": "50.35.38.10"
+        "new-date": "2024-03-13 19:51:09.448997",
+        "new-ts": 1710384671.759578,
+        "new-ip": ""
     },
-    "old-status": {}
+    "old-status": {
+
+    }
 }

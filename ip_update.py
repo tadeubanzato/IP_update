@@ -43,7 +43,6 @@ def get_geoL(currentIP):
 
 def send_email(currentIP,now,os,location):
     print(f'Sending email to: {receiver}')
-    location = find_location()
     port = 465  # For SSL
     smtp_server = "smtp.gmail.com"
     sender_email = sender  # Load sender email from .env
@@ -51,8 +50,8 @@ def send_email(currentIP,now,os,location):
     password = google # Load password from .env
 
     msg = EmailMessage()
-    msg.set_content(f"Hello there,\n\nThis is an automated message from your server Hyotoko, do not reply.\nA new WAN IP was setup by your ISP in {location.city} - {location.country}, make sure to use the most updated IP on your VPN.\n\nLast update check: {now}\nCurrent location: {location.city}, {location.state} - {location.country}\nInformation checked from: {os}\n\nNew IP\n---------------------------\n{currentIP}\n---------------------------\n\nUpdates will check every 2 hours after any power outage or server fail to connect to the internet.")
-    msg['Subject'] = f"⚡️ Hyotoko IP just got updated from {location.country}"
+    msg.set_content(f"Hello there,\n\nThis is an automated message from your server Hyotoko, do not reply.\nA new WAN IP was setup by your ISP in {location['city']} - {location['country']}, make sure to use the most updated IP on your VPN.\n\nLast update check: {now}\nCurrent location: {location['city']}, {location['regionName']} - {location['country']}\nInformation checked from: {os}\n\nNew IP\n---------------------------\n{currentIP}\n---------------------------\n\nUpdates will check every 2 hours after any power outage or server fail to connect to the internet.")
+    msg['Subject'] = f"⚡️ Hyotoko IP just got updated from {location['countryCode']}"
     msg['From'] = sender_email
     msg['To'] = receiver_email
 
@@ -132,6 +131,7 @@ if __name__ == '__main__':
 
         else:
             data['last-run']['ip-update'] = False
+            data['last-run']['location'] = location
             print(f'No IP changes right now.')
 
     # End time processing
