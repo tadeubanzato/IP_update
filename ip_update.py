@@ -122,8 +122,7 @@ if __name__ == '__main__':
             data['last-run']['notification-sent'] = str(datetime.now())
 
             # Swap Old Data
-            # OldData = {processDate:{"old-date": data['new-status']['new-date'],"old-ts": data['new-status']['new-ts'],"old-ip": data['new-status']['new-ip']}}
-            OldData = {"old-ts": data['new-status']['new-ts'],"old-ip": data['new-status']['new-ip']}
+            OldData = {processDate:{"old-date": data['new-status']['new-date'],"old-ts": data['new-status']['new-ts'],"old-ip": data['new-status']['new-ip']}}
             data['old-status'][processDate] = OldData
 
             # Update New Data
