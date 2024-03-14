@@ -33,19 +33,6 @@ def check_ip():
     except Exception as e: 
         return f"Error: {e}" 
 
-def find_location():
-    # g.city
-    # g.state
-    # g.state_long
-    # g.country
-    # g.country_long
-    try:
-        location = geocoder.ip('me')
-        return location
-    except Exception as e: 
-        return f"Error: {e}"
-    
-
 def get_geoL(currentIP):
     # GeoLocation from https://ip-api.com/docs/api:json
     try:
@@ -135,8 +122,7 @@ if __name__ == '__main__':
             send_push (user,token,currentIP,datetime.now(),runOS,location)
             data['last-run']['notification-sent'] = str(datetime.now())
 
-            # Swap Old Data
-            # OldData = {processDate:{"old-date": data['new-status']['new-date'],"old-ts": data['new-status']['new-ts'],"old-ip": data['new-status']['new-ip']}}
+            # Store Old Data
             OldData = {"old-ts": data['new-status']['new-ts'],"old-ip": data['new-status']['new-ip']}
             data['old-status'][processDate] = OldData
 
