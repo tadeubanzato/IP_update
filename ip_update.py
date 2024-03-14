@@ -47,6 +47,7 @@ def find_location():
         
 
 def send_email(currentIP,now,os,location):
+    print(f'Sending email to: {receiver}')
     location = find_location()
     port = 465  # For SSL
     smtp_server = "smtp.gmail.com"
@@ -105,15 +106,17 @@ if __name__ == '__main__':
     location = find_location() # Get IP's Geolocation
 
     if not os.path.isfile('data.json'):
-        data = {"last-run":{"os":runOS,"processDate":processDate,"processTime":0,"time-delta":"N/A","notification-sent":str(datetime.now()),"location":{"city":location.city,"state":location.state,"country":location.country}},"new-update":{"new-status":{"new-date":str(datetime.now()),"new-ts":datetime.now().timestamp(),"new-ip":check_ip ()}},"old-status":{[]}}
+        data = {"last-run":{"os":runOS, "ip-update": False, "processDate":processDate,"processTime":0,"time-delta":"N/A","notification-sent":str(datetime.now()),"location":{"city":location.city,"state":location.state,"country":location.country}},"new-update":{"new-status":{"new-date":str(datetime.now()),"new-ts":datetime.now().timestamp(),"new-ip":check_ip ()}},"old-status":{[]}}
     else:
         data = current_data() # Get current JSON information
         OldData={}
         if currentIP != data['new-status']['new-ip']:
-            print(f'New IP: {currentIP}')
+            print(f'\n{"-"*20}\nYour ISP updated your\n\n 
+                  You : {location.city} - {currentIP} updated {datetime.now().strftime("%D")}')
 
             # Build New Data and Swap Old
             data['last-run']['os'] = runOS
+            data['last-run']['ip-update'] = True
             data['last-run']['processDate'] = processDate
             deltaT = str(deltaT(datetime.fromtimestamp(datetime.now().timestamp()) - datetime.fromtimestamp(data['new-status']['new-ts'])))
             data['last-run']['time-delta'] = deltaT
@@ -136,7 +139,8 @@ if __name__ == '__main__':
             data['new-status']['new-ip'] = currentIP
 
         else:
-            print(f'Current IP remains the same')
+            data['last-run']['ip-update'] = False
+            print(f'No IP changes right now.')
 
     # End time processing
     end_time = timeit.default_timer()
