@@ -10,6 +10,9 @@ import requests
 from email.message import EmailMessage
 from datetime import datetime
 import geocoder
+import os
+from os.path import abspath, dirname
+os.chdir(dirname(abspath(__file__)))
 
 ## Don't foget to create a .env file with the information
 ## google-pass = GOOGLE APP PASSWORD (see readme)
