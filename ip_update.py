@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# ip_udate.py
+# ip_update.py
 
 import sys
 import os
@@ -27,8 +27,8 @@ google = os.environ.get("google-pass")
 user = os.environ.get("pushover-user")
 token = os.environ.get("pushover-token")
 ENVIRONMENT = os.environ.get("environment")
-SCRIPT_NAME = "ip_udate"
-SCRIPT_VERSION = os.environ.get("SCRIPT_VERSION", "1.0.0")
+SCRIPT_NAME = "ip_update"
+SCRIPT_VERSION = os.environ.get("SCRIPT_VERSION", "1.0.1")
 
 def check_ip():
     try:
