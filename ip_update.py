@@ -20,7 +20,7 @@ from os.path import abspath, dirname
 os.chdir(dirname(abspath(__file__)))
 
 # Load environment variables
-load_dotenv()  # load .env information
+load_dotenv()
 
 # === Constants ===
 SCRIPT_NAME = "ip_update"
@@ -30,8 +30,8 @@ RECEIVER_EMAIL = os.environ.get("RECEIVER_EMAIL")
 PUSHOVER_USER = os.getenv("PUSHOVER_USER")
 PUSHOVER_TOKEN = os.getenv("PUSHOVER_TOKEN")
 ENVIRONMENT = os.getenv("ENVIRONMENT", "prod")
-SCRIPT_VERSION=os.getenv("SCRIPT_VERSION", "1.1.3") 
-LOGGING_ENDPOINT = os.getenv("LOGGING_ENDPOINT")
+SCRIPT_VERSION = os.getenv("SCRIPT_VERSION", "1.1.3")
+LOGGING_ENDPOINT = os.getenv("LOGGING_ENDPOINT", "https://gakai.co/api/event")
 CLIENT_API_TOKEN = os.getenv("CLIENT_API_TOKEN")
 
 
@@ -45,22 +45,19 @@ def check_ip():
     except Exception as e:
         return f"Error: {e}"
 
+
 def get_geoL(currentIP):
-    # GeoLocation from https://ip-api.com/docs/api:json
     try:
         geoResp = requests.get(f'http://ip-api.com/json/{currentIP}')
         return geoResp.json()
     except Exception as e:
         return {"error": str(e)}
 
+
 def send_email(currentIP, now, os_name, location):
     print(f'Sending email to: {RECEIVER_EMAIL}')
-    port = 465  # For SSL
+    port = 465
     smtp_server = "smtp.gmail.com"
-    sender_email = SENDER_EMAIL
-    receiver_email = RECEIVER_EMAIL
-    password = GOOGLE_PASS
-
     msg = EmailMessage()
     msg.set_content(
         f"Hello there,\n\nThis is an automated message from your server Hyotoko, do not reply.\n"
@@ -73,17 +70,19 @@ def send_email(currentIP, now, os_name, location):
         f"Updates will check every 2 hours after any power outage or network disruption."
     )
     msg['Subject'] = f"⚡️ Hyotoko IP updated from {location.get('countryCode', 'XX')}"
-    msg['From'] = sender_email
-    msg['To'] = receiver_email
+    msg['From'] = SENDER_EMAIL
+    msg['To'] = RECEIVER_EMAIL
 
     context = ssl.create_default_context()
     with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
-        server.login(sender_email, password)
-        server.send_message(msg, from_addr=sender_email, to_addrs=receiver_email)
+        server.login(SENDER_EMAIL, GOOGLE_PASS)
+        server.send_message(msg, from_addr=SENDER_EMAIL, to_addrs=RECEIVER_EMAIL)
+
 
 def current_data():
     with open('data.json', 'r', encoding='utf-8') as f:
         return json.load(f)
+
 
 def osCheck():
     if sys.platform.startswith('linux'):
@@ -94,6 +93,7 @@ def osCheck():
         return "Windows"
     else:
         return "Unknown"
+
 
 def deltaT(delta):
     seconds = round(delta.total_seconds(), 2)
@@ -108,17 +108,18 @@ def deltaT(delta):
     days = round(hours / 24, 2)
     return f'{days} days'
 
-# Main process
+
+# === Main Process ===
 if __name__ == '__main__':
-    start_time = timeit.default_timer()  # Start Process Timer
+    start_time = timeit.default_timer()
     processDate = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     runOS = osCheck()
     currentIP = check_ip()
     location = get_geoL(currentIP)
 
     error_details = ""
-    media_sent = []      # List to record which notifications were sent
-    ip_updated = False   # Flag indicating if the IP was updated
+    media_sent = []
+    ip_updated = False
 
     if not os.path.isfile('data.json'):
         data = {
@@ -144,7 +145,7 @@ if __name__ == '__main__':
             print(f"\n\nISP UPDATES\n\n{location.get('org', 'Unknown')} has updated your IP.\n"
                   f"Last update: {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}\n"
                   f"Location: {location.get('city', 'Unknown')} - {location.get('region', 'Unknown')}, {location.get('countryCode', 'XX')}\n\n"
-                  f"New IP:\n{'-'*13}\n{currentIP}\n{'-'*13}\n")
+                  f"New IP:\n{'-' * 13}\n{currentIP}\n{'-' * 13}\n")
 
             data['last-run']['os'] = runOS
             data['last-run']['ip-update'] = True
@@ -158,19 +159,20 @@ if __name__ == '__main__':
                 send_email(currentIP, processDate, runOS, location)
                 media_sent.append("email")
             except Exception as e:
-                error_details += f"Error sending email: {e}; "
+                error_details += f"Email error: {e}; "
+
             try:
                 send_push(PUSHOVER_USER, PUSHOVER_TOKEN, currentIP, processDate, runOS, location)
                 media_sent.append("push")
             except Exception as e:
-                error_details += f"Error sending push: {e}; "
+                error_details += f"Push error: {e}; "
+
             data['last-run']['notification-sent'] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            data['old-status'][processDate] = {
+                "old-ts": data['new-status']['new-ts'],
+                "old-ip": data['new-status']['new-ip']
+            }
 
-            # Swap old data
-            old_data = {"old-ts": data['new-status']['new-ts'], "old-ip": data['new-status']['new-ip']}
-            data['old-status'][processDate] = old_data
-
-            # Update new status
             data['new-status']['new-date'] = processDate
             data['new-status']['new-ts'] = datetime.now(timezone.utc).timestamp()
             data['new-status']['new-ip'] = currentIP
@@ -178,23 +180,23 @@ if __name__ == '__main__':
         else:
             data['last-run']['ip-update'] = False
             data['last-run']['location'] = location
-            print('No IP changes right now.')
+            print("No IP changes right now.")
 
     end_time = timeit.default_timer()
     processTime = end_time - start_time
     data['last-run']['processTime'] = processTime
 
-    # Save updated JSON file
+    # Save updated state
     with open('data.json', 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
-    # Prepare payload for logging
+    # === Prepare and send log to /api/event ===
     payload = {
         "timestamp": processDate,
         "duration": processTime,
         "success": True,
         "device": "Ubuntu-Hyotoko",
-        "media": media_sent,  # e.g. [] or ["email", "push"]
+        "media": media_sent,
         "script_name": SCRIPT_NAME,
         "script_version": SCRIPT_VERSION,
         "environment": ENVIRONMENT,
@@ -205,12 +207,25 @@ if __name__ == '__main__':
         "correlation_id": str(uuid.uuid4())
     }
 
-    # Log the execution to the dashboard endpoint
+    event_payload = {
+        "meta": {
+            "project": "gakai.co",
+            "db": "serviceDashboard",
+            "collection": "clientStatus"
+        },
+        "payload": payload
+    }
+
+    headers = {
+        "Authorization": f"Bearer {CLIENT_API_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
     try:
-        response = requests.post("https://gakai.co/api/client-status", json=payload)
-        if response.status_code == 201:
-            print("Execution logged successfully.")
+        response = requests.post(LOGGING_ENDPOINT, headers=headers, json=event_payload, timeout=5)
+        if response.status_code in [200, 201]:
+            print("✅ Execution logged to /api/event")
         else:
-            print("Failed to log execution:", response.text)
+            print(f"⚠️ Logging failed: {response.status_code} {response.text}")
     except Exception as e:
-        print("Error logging execution:", e)
+        print(f"🚫 Exception during logging: {e}")
