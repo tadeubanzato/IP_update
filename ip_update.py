@@ -21,14 +21,19 @@ os.chdir(dirname(abspath(__file__)))
 
 # Load environment variables
 load_dotenv()  # load .env information
-sender = os.environ.get("sender-email")
-receiver = os.environ.get("receiver-email")
-google = os.environ.get("google-pass")
-user = os.environ.get("pushover-user")
-token = os.environ.get("pushover-token")
-ENVIRONMENT = os.environ.get("environment")
+
+# === Constants ===
 SCRIPT_NAME = "ip_update"
-SCRIPT_VERSION = os.environ.get("SCRIPT_VERSION", "1.0.1")
+GOOGLE_PASS = os.environ.get("GOOGLE_PASS")
+SENDER_EMAIL = os.environ.get("SENDER_EMAIL")
+RECEIVER_EMAIL = os.environ.get("RECEIVER_EMAIL")
+PUSHOVER_USER = os.getenv("PUSHOVER_USER")
+PUSHOVER_TOKEN = os.getenv("PUSHOVER_TOKEN")
+ENVIRONMENT = os.getenv("ENVIRONMENT", "prod")
+SCRIPT_VERSION=os.getenv("SCRIPT_VERSION", "1.1.3") 
+LOGGING_ENDPOINT = os.getenv("LOGGING_ENDPOINT")
+CLIENT_API_TOKEN = os.getenv("CLIENT_API_TOKEN")
+
 
 def check_ip():
     try:
@@ -49,12 +54,12 @@ def get_geoL(currentIP):
         return {"error": str(e)}
 
 def send_email(currentIP, now, os_name, location):
-    print(f'Sending email to: {receiver}')
+    print(f'Sending email to: {RECEIVER_EMAIL}')
     port = 465  # For SSL
     smtp_server = "smtp.gmail.com"
-    sender_email = sender
-    receiver_email = receiver
-    password = google
+    sender_email = SENDER_EMAIL
+    receiver_email = RECEIVER_EMAIL
+    password = GOOGLE_PASS
 
     msg = EmailMessage()
     msg.set_content(
@@ -155,7 +160,7 @@ if __name__ == '__main__':
             except Exception as e:
                 error_details += f"Error sending email: {e}; "
             try:
-                send_push(user, token, currentIP, processDate, runOS, location)
+                send_push(PUSHOVER_USER, PUSHOVER_TOKEN, currentIP, processDate, runOS, location)
                 media_sent.append("push")
             except Exception as e:
                 error_details += f"Error sending push: {e}; "
