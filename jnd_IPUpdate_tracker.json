@@ -1,0 +1,36 @@
+{
+  "last-run": {
+    "processDate": "2025-04-23T17:09:13Z",
+    "os": "darwin",
+    "ip-update": true,
+    "location": {
+      "status": "success",
+      "country": "United States",
+      "countryCode": "US",
+      "region": "WA",
+      "regionName": "Washington",
+      "city": "Seattle",
+      "zip": "98160",
+      "lat": 47.6109,
+      "lon": -122.3303,
+      "timezone": "America/Los_Angeles",
+      "isp": "T-Mobile USA, Inc.",
+      "org": "T-Mobile USA, Inc.",
+      "as": "AS21928 T-Mobile USA, Inc.",
+      "query": "208.54.132.54"
+    },
+    "processTime": 28.639296208999998,
+    "time-delta": "34.5 seconds",
+    "notification-sent": "2025-04-23T17:09:13Z"
+  },
+  "new-status": {
+    "new-date": "2025-04-23T17:09:13Z",
+    "new-ip": "208.54.132.54",
+    "new-ts": 1745428153.118135
+  },
+  "old-status": {
+    "new-date": "2025-04-23T17:08:38Z",
+    "new-ip": "1.54.132.54",
+    "new-ts": 1745428118.595411
+  }
+}
