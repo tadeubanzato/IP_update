@@ -7,13 +7,8 @@ def send_push(user, token, current_ip, timestamp, os_name, location):
     print(f"[{datetime.now().strftime('%H:%M:%S')}] 📲 Sending Pushover notification...")
 
     payload = {
-        "message": (
-            f"📡 New Hyotoko IP detected:\n\n"
-            f"{current_ip}\n"
-            f"Location: {location.get('city', 'Unknown')} - {location.get('country', 'Unknown')}\n"
-            f"Time: {timestamp}"
-        ),
-        "title": "Hyotoko IP Change Alert",
+        "message": (f"New Hyotoko IP detected: {current_ip} Location: {location.get('city', 'Unknown')}"),
+        "title": "📡 Hyotoko IP Change Alert",
         "user": user,
         "token": token,
         "priority": 0
