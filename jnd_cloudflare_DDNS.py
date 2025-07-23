@@ -112,7 +112,7 @@ def update_cloudflare_dns(ip):
         log.info(f"✅ Cloudflare DNS updated to {ip}")
         return True
     else:
-        log.error(f"❌ Failed to update DNS: {update_resp}")
+        log.error(f"❌ Failed to update DNS. Response: {json.dumps(update_resp, indent=2)}")
         return False
 
 def append_ip_history(ip, location):
