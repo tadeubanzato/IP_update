@@ -39,7 +39,7 @@ GOOGLE_PASS = os.getenv("GOOGLE_PASS")
 PUSHOVER_USER = os.getenv("PUSHOVER_USER")
 PUSHOVER_TOKEN = os.getenv("PUSHOVER_TOKEN")
 SCRIPT_NAME = "jnd_cloudflare_DDNS"
-SCRIPT_VERSION = "3.2"
+SCRIPT_VERSION = "3.3"
 ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
 
 CF_HEADERS = {
@@ -93,7 +93,7 @@ def update_cloudflare_dns(ip):
 
     if current_cf_ip == ip:
         log.info(f"✅ Cloudflare DNS already set to {ip}")
-        return False
+        return "skipped"  # No update needed
 
     update_resp = requests.put(
         f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records/{record_id}",
@@ -110,14 +110,19 @@ def update_cloudflare_dns(ip):
 
     if update_resp.get("success"):
         log.info(f"✅ Cloudflare DNS updated to {ip}")
-        return True
+        return "success"
     else:
         log.error(f"❌ Failed to update DNS. Response: {json.dumps(update_resp, indent=2)}")
-        return False
+        return "failed"
 
-def append_ip_history(ip, location):
+def append_ip_history(ip, location, cf_status):
     timestamp = datetime.now(timezone.utc).isoformat()
-    entry = {"ip": ip, "timestamp": timestamp, "location": location}
+    entry = {
+        "ip": ip,
+        "timestamp": timestamp,
+        "location": location,
+        "cloudflare_update": cf_status
+    }
     os.makedirs(os.path.dirname(HISTORY_FILE), exist_ok=True)
     history = []
     if os.path.exists(HISTORY_FILE):
@@ -163,8 +168,10 @@ def main_loop():
                 location = get_geo(ip)
 
                 # Update Cloudflare
-                if update_cloudflare_dns(ip):
-                    # Send notifications
+                cf_status = update_cloudflare_dns(ip)
+
+                # Send notifications only if update was successful
+                if cf_status == "success":
                     try:
                         send_email(ip, datetime.now(timezone.utc).isoformat(), sys.platform, location, SENDER_EMAIL, RECEIVER_EMAIL, GOOGLE_PASS)
                         log.info("📧 Email notification sent.")
@@ -177,10 +184,8 @@ def main_loop():
                     except Exception as e:
                         log.error(f"❌ Push notification failed: {e}")
 
-                    # Append to history
-                    append_ip_history(ip, location)
-                else:
-                    log.warning("⚠️ Cloudflare update failed. Notifications skipped.")
+                # Record in history (even if skipped or failed)
+                append_ip_history(ip, location, cf_status)
 
         except Exception as e:
             log.error(f"❌ Error: {e}")
