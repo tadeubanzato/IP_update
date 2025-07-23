@@ -39,7 +39,7 @@ GOOGLE_PASS = os.getenv("GOOGLE_PASS")
 PUSHOVER_USER = os.getenv("PUSHOVER_USER")
 PUSHOVER_TOKEN = os.getenv("PUSHOVER_TOKEN")
 SCRIPT_NAME = "jnd_cloudflare_DDNS"
-SCRIPT_VERSION = "3.1"
+SCRIPT_VERSION = "3.2"
 ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
 
 CF_HEADERS = {
@@ -147,12 +147,8 @@ def main_loop():
                 break
 
             ip = check_ip()
-            location = get_geo(ip)
 
-            log.info(f"🌐 Public IP: {ip}")
-            log.info(f"📍 Location: {location.get('city', 'Unknown')}, {location.get('country', 'Unknown')}")
-
-            # Load previous data
+            # Load last IP from history
             last_ip = None
             if os.path.exists(HISTORY_FILE):
                 with open(HISTORY_FILE, 'r') as f:
@@ -160,8 +156,11 @@ def main_loop():
                     if history:
                         last_ip = history[-1]["ip"]
 
-            if ip != last_ip:
-                log.info("🔄 IP has changed. Updating services...")
+            if ip == last_ip:
+                log.info("ℹ️ IP has not changed. Skipping GeoIP, Cloudflare, and notifications.")
+            else:
+                log.info("🔄 IP has changed. Proceeding with GeoIP and updates...")
+                location = get_geo(ip)
 
                 # Update Cloudflare
                 if update_cloudflare_dns(ip):
@@ -182,8 +181,6 @@ def main_loop():
                     append_ip_history(ip, location)
                 else:
                     log.warning("⚠️ Cloudflare update failed. Notifications skipped.")
-            else:
-                log.info("ℹ️ IP has not changed. No update needed.")
 
         except Exception as e:
             log.error(f"❌ Error: {e}")
