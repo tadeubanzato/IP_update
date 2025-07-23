@@ -39,7 +39,7 @@ GOOGLE_PASS = os.getenv("GOOGLE_PASS")
 PUSHOVER_USER = os.getenv("PUSHOVER_USER")
 PUSHOVER_TOKEN = os.getenv("PUSHOVER_TOKEN")
 SCRIPT_NAME = "jnd_cloudflare_DDNS"
-SCRIPT_VERSION = "3.0"
+SCRIPT_VERSION = "3.1"
 ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
 
 CF_HEADERS = {
@@ -77,7 +77,7 @@ def get_geo(ip):
     return response.json()
 
 def update_cloudflare_dns(ip):
-    log.info("☁️ Updating Cloudflare DNS...")
+    log.info("☁️ Checking Cloudflare DNS...")
     zone_resp = requests.get(
         f"https://api.cloudflare.com/client/v4/zones?name={CF_ZONE}",
         headers=CF_HEADERS, timeout=5
@@ -133,13 +133,19 @@ def main_loop():
     while not shutdown_requested:
         try:
             # Load config
-            config = toml.load(CONFIG_FILE)
-            if not config.get("jnd_cloudflare_ddns", {}).get("enabled", False):
-                log.info("⚠️ Feature disabled in config.toml. Exiting.")
-                break
+            if os.path.exists(CONFIG_FILE):
+                config = toml.load(CONFIG_FILE)
+            else:
+                log.warning("⚠️ Config file not found. Using defaults.")
+                config = {"jnd_cloudflare_ddns": {"enabled": True, "interval_seconds": 30}}
+
+            enabled = config.get("jnd_cloudflare_ddns", {}).get("enabled", False)
             interval = config.get("jnd_cloudflare_ddns", {}).get("interval_seconds", 30)
 
-            hostname = socket.gethostname()
+            if not enabled:
+                log.info("🚫 Feature disabled in config.toml. Exiting.")
+                break
+
             ip = check_ip()
             location = get_geo(ip)
 
@@ -147,17 +153,35 @@ def main_loop():
             log.info(f"📍 Location: {location.get('city', 'Unknown')}, {location.get('country', 'Unknown')}")
 
             # Load previous data
-            prev_data = None
+            last_ip = None
             if os.path.exists(HISTORY_FILE):
                 with open(HISTORY_FILE, 'r') as f:
-                    prev_data = json.load(f)[-1] if json.load(f) else None
+                    history = json.load(f)
+                    if history:
+                        last_ip = history[-1]["ip"]
 
-            if not prev_data or ip != prev_data['ip']:
-                log.info("🔄 IP changed or no record exists. Triggering updates...")
-                send_email(ip, datetime.now(timezone.utc).isoformat(), sys.platform, location, SENDER_EMAIL, RECEIVER_EMAIL, GOOGLE_PASS)
-                send_push(PUSHOVER_USER, PUSHOVER_TOKEN, ip, datetime.now(timezone.utc).isoformat(), sys.platform, location)
+            if ip != last_ip:
+                log.info("🔄 IP has changed. Updating services...")
+
+                # Update Cloudflare
                 if update_cloudflare_dns(ip):
+                    # Send notifications
+                    try:
+                        send_email(ip, datetime.now(timezone.utc).isoformat(), sys.platform, location, SENDER_EMAIL, RECEIVER_EMAIL, GOOGLE_PASS)
+                        log.info("📧 Email notification sent.")
+                    except Exception as e:
+                        log.error(f"❌ Email notification failed: {e}")
+
+                    try:
+                        send_push(PUSHOVER_USER, PUSHOVER_TOKEN, ip, datetime.now(timezone.utc).isoformat(), sys.platform, location)
+                        log.info("📲 Push notification sent.")
+                    except Exception as e:
+                        log.error(f"❌ Push notification failed: {e}")
+
+                    # Append to history
                     append_ip_history(ip, location)
+                else:
+                    log.warning("⚠️ Cloudflare update failed. Notifications skipped.")
             else:
                 log.info("ℹ️ IP has not changed. No update needed.")
 
