@@ -26,7 +26,7 @@ load_dotenv()
 
 # === Constants ===
 CONFIG_FILE = "/home/tadeu/Python/IP_update/config.toml"
-HISTORY_FILE = "/var/lib/jnd/ip_history.json"
+HISTORY_FILE = "/home/tadeu/Python/IP_update/ip_history.json"
 
 CF_TOKEN = os.getenv("CF_TOKEN")
 CF_ZONE = os.getenv("CF_ZONE", "example.com")
