@@ -141,11 +141,11 @@ sudo systemctl restart jnd_cloudflare_ddns.service
 `/var/lib/jnd/ip_history.json`
 ```json
 {
-  "ip": "177.94.75.127",
+  "ip": "200.111.111.133",
   "timestamp": "2025-07-23T06:37:56.088955+00:00",
   "location": {
-    "city": "Jundiaí",
-    "country": "Brazil"
+    "city": "City",
+    "country": "Country"
   },
   "cloudflare_update": "skipped"
 }
