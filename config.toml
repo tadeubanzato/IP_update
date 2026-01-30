@@ -6,7 +6,8 @@ interval_seconds = 120 #every 30 minutes
 okame_endpoint = "https://api.okame.xyz/v1/messages"
 
 # Optional defaults (safe to keep here)
+subject = "⚡️ New IP from Hyotoko"
 email_type = "html"
 email_template = "ip_update"
 email_recipient = "tadeubanzato@gmail.com"
-pus_app = "hyotoko"
+push_app = "hyotoko"

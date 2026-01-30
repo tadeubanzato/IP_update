@@ -9,7 +9,10 @@
 #   OKAME_USER_KEY
 #   OKAME_API_TOKEN
 #
-# Legacy signature preserved so existing callers don't break.
+# NOTE:
+# - Subject is passed from TOML by the caller.
+# - This file no longer uses SMTP at all.
+# - Legacy signature preserved so existing callers don't break.
 
 from __future__ import annotations
 
@@ -37,10 +40,10 @@ def send_email(
     google_pass: str,
     *,
     okame_endpoint: str,
+    subject: str,
     email_type: str,
     email_template: str,
     email_recipient: str,
-    subject: str = "📡 New IP from Hyotoko",
     name: Optional[str] = None,
     location_label: Optional[str] = None,
     timeout_seconds: int = 10,
@@ -48,13 +51,16 @@ def send_email(
     """
     Send an email through Okame.
 
-    - sender_email / google_pass are ignored (legacy compatibility only).
-    - email_recipient MUST come from TOML (single source of truth).
+    - sender_email / receiver_email / google_pass are ignored (legacy compatibility only).
+    - subject MUST be passed from TOML.
+    - email_type/email_template/email_recipient MUST be passed from TOML.
     """
     print(f"[{datetime.now().strftime('%H:%M:%S')}] 📧 Sending email via Okame...")
 
     if not okame_endpoint:
         raise RuntimeError("okame_endpoint is required (from TOML).")
+    if not subject:
+        raise RuntimeError("subject is required (from TOML).")
     if not email_type:
         raise RuntimeError("email_type is required (from TOML).")
     if not email_template:
@@ -69,15 +75,15 @@ def send_email(
         name = os.getenv("OKAME_EMAIL_NAME", "Tadeu")
 
     if location_label is None:
-        # Prefer env override, else geo country, else a safe default
+        # Prefer env override, else geo country, else safe default
         location_label = os.getenv("OKAME_LOCATION_LABEL") or location.get("country") or "Brazil"
 
     payload = {
         "channel": "email",
-        "emailType": email_type,     # "html" or "txt"
+        "emailType": email_type,      # "html" or "txt"
         "to": email_recipient,
-        "subject": subject,
-        "template": email_template,  # e.g. "ip_update"
+        "subject": subject,           # from TOML
+        "template": email_template,   # e.g. "ip_update"
         "context": {
             "name": name,
             "ip_address": ip,

@@ -9,7 +9,11 @@
 #   OKAME_USER_KEY
 #   OKAME_API_TOKEN
 #
-# Legacy signature preserved so existing callers don't break.
+# NOTE:
+# - Subject is passed from TOML by the caller.
+# - push_app is passed from TOML by the caller.
+# - Does NOT require "to" (matches your known-good baseline).
+# - Legacy signature preserved so existing callers don't break.
 
 from __future__ import annotations
 
@@ -36,8 +40,8 @@ def send_push(
     location: Dict[str, Any],
     *,
     okame_endpoint: str,
+    subject: str,
     push_app: str,
-    subject: str = "Final check",
     body: Optional[str] = None,
     timeout_seconds: int = 10,
 ) -> None:
@@ -45,13 +49,16 @@ def send_push(
     Send a push notification through Okame.
 
     - user/token are ignored (legacy compatibility only).
-    - push_app MUST come from TOML (single source of truth).
-    - Does NOT require "to" (matches your baseline).
+    - subject MUST come from TOML.
+    - push_app MUST come from TOML.
+    - Does NOT include "to" unless your gateway requires it (baseline does not).
     """
     print(f"[{datetime.now().strftime('%H:%M:%S')}] 📲 Sending push via Okame...")
 
     if not okame_endpoint:
         raise RuntimeError("okame_endpoint is required (from TOML).")
+    if not subject:
+        raise RuntimeError("subject is required (from TOML).")
     if not push_app:
         raise RuntimeError("push_app is required (from TOML).")
 
@@ -65,8 +72,8 @@ def send_push(
 
     payload = {
         "channel": "push",
-        "app": push_app,     # from TOML
-        "subject": subject,
+        "app": push_app,   # from TOML
+        "subject": subject,  # from TOML (shared with email)
         "body": body,
     }
 

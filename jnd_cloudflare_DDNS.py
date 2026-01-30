@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 # jnd_cloudflare_DDNS.py
 #
-# Cloudflare DDNS updater + Okame notifications
+# Cloudflare DDNS updater + Okame notifications (email + push)
 #
 # Config (TOML):
 #   [jnd_cloudflare_ddns]
 #   enabled = true
 #   interval_seconds = 120
 #   okame_endpoint = "https://api.okame.xyz/v1/messages"
+#   subject = "⚡️ New IP from Hyotoko"
 #   email_type = "html"
 #   email_template = "ip_update"
 #   email_recipient = "tadeubanzato@gmail.com"
@@ -17,6 +18,10 @@
 #   CF_TOKEN
 #   OKAME_USER_KEY
 #   OKAME_API_TOKEN
+#
+# Optional ENV:
+#   OKAME_EMAIL_NAME (default "Tadeu")
+#   OKAME_LOCATION_LABEL (default from geo country, else "Brazil")
 
 from __future__ import annotations
 
@@ -53,7 +58,7 @@ CF_ZONE = os.getenv("CF_ZONE", "example.com")
 CF_SUBDOMAIN = os.getenv("CF_SUBDOMAIN", "matrix")
 
 SCRIPT_NAME = "jnd_cloudflare_DDNS"
-SCRIPT_VERSION = "3.4"
+SCRIPT_VERSION = "3.5"
 ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
 
 CF_HEADERS = {
@@ -185,7 +190,6 @@ def _load_cfg() -> Dict[str, Any]:
     if not os.path.exists(CONFIG_FILE):
         log.warning("⚠️ Config file not found. Using defaults.")
         return {"enabled": True, "interval_seconds": 30}
-
     config = toml.load(CONFIG_FILE)
     return config.get("jnd_cloudflare_ddns", {}) or {}
 
@@ -213,6 +217,7 @@ def main_loop():
 
             # Required from TOML (your final spec)
             okame_endpoint = _require_cfg(cfg, "okame_endpoint")
+            subject = _require_cfg(cfg, "subject")
             email_type = _require_cfg(cfg, "email_type")
             email_template = _require_cfg(cfg, "email_template")
             email_recipient = _require_cfg(cfg, "email_recipient")
@@ -237,10 +242,8 @@ def main_loop():
                 log.info("🔄 IP has changed. Proceeding with GeoIP and updates...")
                 location = get_geo(ip)
 
-                # Update Cloudflare
                 cf_status = update_cloudflare_dns(ip)
 
-                # Send notifications only if update was successful
                 if cf_status == "success":
                     ts = datetime.now(timezone.utc).isoformat()
 
@@ -250,10 +253,9 @@ def main_loop():
                             ts,
                             sys.platform,
                             location,
-                            "",  # legacy args ignored
-                            "",  # legacy args ignored
-                            "",  # legacy args ignored
+                            "", "", "",  # legacy args ignored
                             okame_endpoint=okame_endpoint,
+                            subject=subject,
                             email_type=email_type,
                             email_template=email_template,
                             email_recipient=email_recipient,
@@ -264,20 +266,19 @@ def main_loop():
 
                     try:
                         send_push(
-                            "",  # legacy args ignored
-                            "",  # legacy args ignored
+                            "", "",  # legacy args ignored
                             ip,
                             ts,
                             sys.platform,
                             location,
                             okame_endpoint=okame_endpoint,
+                            subject=subject,
                             push_app=push_app,
                         )
                         log.info("📲 Push notification sent (Okame).")
                     except Exception as e:
                         log.error(f"❌ Push notification failed (Okame): {e}")
 
-                # Record in history (even if skipped or failed)
                 append_ip_history(ip, location, cf_status)
 
         except Exception as e:
