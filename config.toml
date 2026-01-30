@@ -1,3 +1,11 @@
 [jnd_cloudflare_ddns]
 enabled = true
-interval_seconds = 120  # Check every 30 seconds
+interval_seconds = 120 #every 30 minutes
+
+# Okame message delivery
+okame_endpoint = "https://api.okame.xyz/v1/messages"
+
+# Optional defaults (safe to keep here)
+email_type = "html"
+email_template = "ip_update"
+email_recipient = "tadeubanzato@gmail.com"
