@@ -68,7 +68,7 @@ def send_push(
     if body is None:
         city = location.get("city", "Unknown")
         country = location.get("country", "Unknown")
-        body = f"New Hyotoko IP: {current_ip} — {city}, {country}"
+        body = f"New IP: {current_ip} — {city}, {country} 🇧🇷"
 
     payload = {
         "channel": "push",
