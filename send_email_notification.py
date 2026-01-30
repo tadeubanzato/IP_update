@@ -99,7 +99,7 @@ def send_email(
         "context": {
             "name": name,
             "ip_address": ip,
-            "location": location_label,
+            "location": f'{location_label} 🇧🇷',
         },
     }
 
