@@ -1,57 +1,40 @@
 #!/usr/bin/env python3
-"""
-jnd_cloudflare_DDNS.py
-
-Hyotoko DDNS updater:
-- Checks public IP
-- GeoIP lookup
-- Updates Cloudflare DNS A record
-- Records IP history locally
-- Sends Okame notifications on IP change:
-    - Email (template + context) using config.toml defaults
-    - Push (optional) if OKAME_PUSH_TO is set in env
-
-Config (TOML) required:
-
-[jnd_cloudflare_ddns]
-enabled = true
-interval_seconds = 120
-okame_endpoint = "https://api.okame.xyz/v1/messages"
-email_type = "html"
-email_template = "welcome"
-email_recipient = "tadeubanzato@gmail.com"
-
-Env required:
-- CF_TOKEN
-- CF_ZONE
-- CF_SUBDOMAIN
-
-Okame env required:
-- OKAME_USER_KEY
-- OKAME_API_TOKEN
-
-Okame env optional:
-- OKAME_EMAIL_NAME (default "Tadeu")
-- OKAME_LOCATION_LABEL (default "Brazil")
-- OKAME_PUSH_TO (if set, push will be sent)
-- OKAME_PUSH_APP (default "hyotoko")
-"""
+# jnd_cloudflare_DDNS.py
+#
+# Cloudflare DDNS updater + Okame notifications
+#
+# Config (TOML):
+#   [jnd_cloudflare_ddns]
+#   enabled = true
+#   interval_seconds = 120
+#   okame_endpoint = "https://api.okame.xyz/v1/messages"
+#   email_type = "html"
+#   email_template = "ip_update"
+#   email_recipient = "tadeubanzato@gmail.com"
+#   push_app = "hyotoko"
+#
+# Secrets (ENV):
+#   CF_TOKEN
+#   OKAME_USER_KEY
+#   OKAME_API_TOKEN
 
 from __future__ import annotations
 
-import os
 import sys
+import os
 import json
 import time
 import signal
+import requests
+import toml
 import logging
 from datetime import datetime, timezone
+from dotenv import load_dotenv
 from os.path import abspath, dirname
 from typing import Any, Dict, Optional
 
-import requests
-import toml
-from dotenv import load_dotenv
+from send_push_notification import send_push
+from send_email_notification import send_email
 
 
 # === Set working directory ===
@@ -60,28 +43,17 @@ os.chdir(dirname(abspath(__file__)))
 # === Load environment variables ===
 load_dotenv()
 
-# === Files ===
+# === Constants ===
 CONFIG_FILE = "/home/tadeu/Python/IP_update/config.toml"
 HISTORY_FILE = "/home/tadeu/Python/IP_update/ip_history.json"
 
-# === Cloudflare (env) ===
+# Cloudflare env
 CF_TOKEN = os.getenv("CF_TOKEN")
 CF_ZONE = os.getenv("CF_ZONE", "example.com")
 CF_SUBDOMAIN = os.getenv("CF_SUBDOMAIN", "matrix")
 
-# === Okame (env secrets) ===
-OKAME_USER_KEY = os.getenv("OKAME_USER_KEY")
-OKAME_API_TOKEN = os.getenv("OKAME_API_TOKEN")
-
-# === Okame (env optional) ===
-OKAME_EMAIL_NAME = os.getenv("OKAME_EMAIL_NAME", "Tadeu")
-OKAME_LOCATION_LABEL = os.getenv("OKAME_LOCATION_LABEL", "Brazil")
-
-OKAME_PUSH_TO = os.getenv("OKAME_PUSH_TO")  # if unset, push is skipped
-OKAME_PUSH_APP = os.getenv("OKAME_PUSH_APP", "hyotoko")
-
 SCRIPT_NAME = "jnd_cloudflare_DDNS"
-SCRIPT_VERSION = "3.5"
+SCRIPT_VERSION = "3.4"
 ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
 
 CF_HEADERS = {
@@ -111,23 +83,7 @@ signal.signal(signal.SIGTERM, signal_handler)
 signal.signal(signal.SIGINT, signal_handler)
 
 
-# === Helpers ===
-def safe_load_json(path: str) -> Any:
-    if not os.path.exists(path):
-        return None
-    try:
-        with open(path, "r") as f:
-            return json.load(f)
-    except Exception:
-        return None
-
-
-def safe_write_json(path: str, data: Any) -> None:
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as f:
-        json.dump(data, f, indent=2)
-
-
+# === Helper functions ===
 def check_ip() -> str:
     resp = requests.get("https://api.ipify.org", timeout=10)
     resp.raise_for_status()
@@ -207,94 +163,47 @@ def append_ip_history(ip: str, location: Dict[str, Any], cf_status: str) -> None
         "cloudflare_update": cf_status,
     }
 
-    history = safe_load_json(HISTORY_FILE)
-    if not isinstance(history, list):
-        history = []
+    os.makedirs(os.path.dirname(HISTORY_FILE), exist_ok=True)
+
+    history: list = []
+    if os.path.exists(HISTORY_FILE):
+        try:
+            with open(HISTORY_FILE, "r") as f:
+                history = json.load(f) or []
+        except Exception:
+            history = []
+
     history.append(entry)
 
-    safe_write_json(HISTORY_FILE, history)
+    with open(HISTORY_FILE, "w") as f:
+        json.dump(history, f, indent=2)
+
     log.info(f"📝 IP history updated: ip={ip} cf={cf_status}")
 
 
-def okame_headers() -> Dict[str, str]:
-    if not OKAME_USER_KEY or not OKAME_API_TOKEN:
-        raise RuntimeError("Missing OKAME_USER_KEY / OKAME_API_TOKEN in environment.")
-    return {
-        "Content-Type": "application/json",
-        "X-User-Key": OKAME_USER_KEY,
-        "X-API-Token": OKAME_API_TOKEN,
-    }
+def _load_cfg() -> Dict[str, Any]:
+    if not os.path.exists(CONFIG_FILE):
+        log.warning("⚠️ Config file not found. Using defaults.")
+        return {"enabled": True, "interval_seconds": 30}
+
+    config = toml.load(CONFIG_FILE)
+    return config.get("jnd_cloudflare_ddns", {}) or {}
 
 
-def send_okame_email(
-    *,
-    okame_endpoint: str,
-    email_type: str,
-    email_template: str,
-    email_recipient: str,
-    ip: str,
-) -> None:
-    payload = {
-        "channel": "email",
-        "emailType": email_type,
-        "to": email_recipient,
-        "subject": "📡 New IP from Hyotoko",
-        "template": email_template,
-        "context": {
-            "name": OKAME_EMAIL_NAME,
-            "ip_address": ip,
-            "location": OKAME_LOCATION_LABEL,
-        },
-    }
-
-    resp = requests.post(okame_endpoint, json=payload, headers=okame_headers(), timeout=15)
-    if 200 <= resp.status_code < 300:
-        log.info("📧 Email sent via Okame.")
-        return
-
-    log.error(f"❌ Okame email failed: {resp.status_code} {resp.text}")
-    resp.raise_for_status()
-
-
-def send_okame_push(*, okame_endpoint: str, ip: str, location: Dict[str, Any]) -> None:
-    if not OKAME_PUSH_TO:
-        log.info("ℹ️ OKAME_PUSH_TO not set — skipping push.")
-        return
-
-    city = (location or {}).get("city") or "Unknown"
-    country = (location or {}).get("country") or (location or {}).get("countryCode") or "Unknown"
-
-    payload = {
-        "channel": "push",
-        "app": OKAME_PUSH_APP,
-        "to": OKAME_PUSH_TO,
-        "subject": "📡 Hyotoko IP Change Alert",
-        "body": f"New IP: {ip} — {city}, {country}",
-    }
-
-    resp = requests.post(okame_endpoint, json=payload, headers=okame_headers(), timeout=15)
-    if 200 <= resp.status_code < 300:
-        log.info("📲 Push sent via Okame.")
-        return
-
-    log.error(f"❌ Okame push failed: {resp.status_code} {resp.text}")
-    resp.raise_for_status()
+def _require_cfg(cfg: Dict[str, Any], key: str) -> Any:
+    val = cfg.get(key)
+    if val is None or (isinstance(val, str) and not val.strip()):
+        raise RuntimeError(f"config.toml missing: [jnd_cloudflare_ddns].{key}")
+    return val
 
 
 # === Main loop ===
 def main_loop():
     while not shutdown_requested:
-        interval = 30  # default fallback
+        interval = 30
 
         try:
-            # Load config (every loop so you can change interval without restart)
-            if os.path.exists(CONFIG_FILE):
-                config = toml.load(CONFIG_FILE)
-            else:
-                log.warning("⚠️ Config file not found. Using defaults.")
-                config = {"jnd_cloudflare_ddns": {"enabled": True, "interval_seconds": 30}}
-
-            cfg = config.get("jnd_cloudflare_ddns", {})
+            cfg = _load_cfg()
             enabled = bool(cfg.get("enabled", False))
             interval = int(cfg.get("interval_seconds", 30))
 
@@ -302,24 +211,25 @@ def main_loop():
                 log.info("🚫 Feature disabled in config.toml. Exiting.")
                 break
 
-            # Okame config from TOML (as you specified)
-            okame_endpoint = cfg.get("okame_endpoint")
-            email_type = cfg.get("email_type", "html")
-            email_template = cfg.get("email_template", "welcome")
-            email_recipient = cfg.get("email_recipient")
-
-            if not okame_endpoint:
-                raise RuntimeError("config.toml missing: jnd_cloudflare_ddns.okame_endpoint")
-            if not email_recipient:
-                raise RuntimeError("config.toml missing: jnd_cloudflare_ddns.email_recipient")
+            # Required from TOML (your final spec)
+            okame_endpoint = _require_cfg(cfg, "okame_endpoint")
+            email_type = _require_cfg(cfg, "email_type")
+            email_template = _require_cfg(cfg, "email_template")
+            email_recipient = _require_cfg(cfg, "email_recipient")
+            push_app = _require_cfg(cfg, "push_app")
 
             ip = check_ip()
 
             # Load last IP from history
-            last_ip = None
-            history = safe_load_json(HISTORY_FILE)
-            if isinstance(history, list) and history:
-                last_ip = history[-1].get("ip")
+            last_ip: Optional[str] = None
+            if os.path.exists(HISTORY_FILE):
+                try:
+                    with open(HISTORY_FILE, "r") as f:
+                        history = json.load(f) or []
+                        if history:
+                            last_ip = history[-1].get("ip")
+                except Exception:
+                    last_ip = None
 
             if ip == last_ip:
                 log.info("ℹ️ IP has not changed. Skipping GeoIP, Cloudflare, and notifications.")
@@ -332,21 +242,40 @@ def main_loop():
 
                 # Send notifications only if update was successful
                 if cf_status == "success":
+                    ts = datetime.now(timezone.utc).isoformat()
+
                     try:
-                        send_okame_email(
+                        send_email(
+                            ip,
+                            ts,
+                            sys.platform,
+                            location,
+                            "",  # legacy args ignored
+                            "",  # legacy args ignored
+                            "",  # legacy args ignored
                             okame_endpoint=okame_endpoint,
                             email_type=email_type,
                             email_template=email_template,
                             email_recipient=email_recipient,
-                            ip=ip,
                         )
+                        log.info("📧 Email notification sent (Okame).")
                     except Exception as e:
-                        log.error(f"❌ Email notification failed: {e}")
+                        log.error(f"❌ Email notification failed (Okame): {e}")
 
                     try:
-                        send_okame_push(okame_endpoint=okame_endpoint, ip=ip, location=location)
+                        send_push(
+                            "",  # legacy args ignored
+                            "",  # legacy args ignored
+                            ip,
+                            ts,
+                            sys.platform,
+                            location,
+                            okame_endpoint=okame_endpoint,
+                            push_app=push_app,
+                        )
+                        log.info("📲 Push notification sent (Okame).")
                     except Exception as e:
-                        log.error(f"❌ Push notification failed: {e}")
+                        log.error(f"❌ Push notification failed (Okame): {e}")
 
                 # Record in history (even if skipped or failed)
                 append_ip_history(ip, location, cf_status)

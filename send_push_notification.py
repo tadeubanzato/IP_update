@@ -1,26 +1,15 @@
-"""
-send_push_notification.py
-
-Okame Push sender for Hyotoko.
-
-Sends push notifications through:
-POST https://api.okame.xyz/v1/messages
-
-Secrets (must be in env):
-- OKAME_USER_KEY
-- OKAME_API_TOKEN
-
-Push recipient (env):
-- OKAME_PUSH_TO
-
-Push app name (optional env):
-- OKAME_PUSH_APP (default "hyotoko")
-
-This module keeps the legacy function signature used by older code:
-send_push(user, token, current_ip, timestamp, os_name, location)
-
-But now it sends via Okame, not Pushover.
-"""
+# send_push_notification.py
+#
+# Okame Push sender for Hyotoko
+#
+# Sends through:
+#   POST {okame_endpoint}   (example: https://api.okame.xyz/v1/messages)
+#
+# Secrets (env required):
+#   OKAME_USER_KEY
+#   OKAME_API_TOKEN
+#
+# Legacy signature preserved so existing callers don't break.
 
 from __future__ import annotations
 
@@ -47,50 +36,36 @@ def send_push(
     location: Dict[str, Any],
     *,
     okame_endpoint: str,
-    to: Optional[str] = None,
-    app: Optional[str] = None,
-    subject: str = "📡 Hyotoko IP Change Alert",
+    push_app: str,
+    subject: str = "Final check",
     body: Optional[str] = None,
-    timeout_seconds: int = 15,
+    timeout_seconds: int = 10,
 ) -> None:
     """
-    Send a push notification via Okame.
+    Send a push notification through Okame.
 
-    Compatibility notes:
-    - `user` and `token` are ignored (kept only so old code doesn't break).
-
-    Required:
-    - okame_endpoint (pass from TOML)
-    - OKAME_USER_KEY + OKAME_API_TOKEN in environment
-
-    Recipient:
-    - If `to` is not provided, will use OKAME_PUSH_TO from env.
+    - user/token are ignored (legacy compatibility only).
+    - push_app MUST come from TOML (single source of truth).
+    - Does NOT require "to" (matches your baseline).
     """
-    now = datetime.now().strftime("%H:%M:%S")
-    print(f"[{now}] 📲 Sending push via Okame...")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] 📲 Sending push via Okame...")
 
     if not okame_endpoint:
-        raise RuntimeError("okame_endpoint is required (pass from TOML).")
+        raise RuntimeError("okame_endpoint is required (from TOML).")
+    if not push_app:
+        raise RuntimeError("push_app is required (from TOML).")
 
     ok_user_key = _require_env("OKAME_USER_KEY")
     ok_api_token = _require_env("OKAME_API_TOKEN")
 
-    push_to = (to or "").strip() or os.getenv("OKAME_PUSH_TO", "").strip()
-    if not push_to:
-        raise RuntimeError("Missing push recipient. Set OKAME_PUSH_TO or pass to=...")
-
-    push_app = (app or "").strip() or os.getenv("OKAME_PUSH_APP", "hyotoko")
-
-    city = (location or {}).get("city") or "Unknown"
-    country = (location or {}).get("country") or (location or {}).get("countryCode") or "Unknown"
-
     if body is None:
-        body = f"New IP: {current_ip} — {city}, {country}"
+        city = location.get("city", "Unknown")
+        country = location.get("country", "Unknown")
+        body = f"New Hyotoko IP: {current_ip} — {city}, {country}"
 
     payload = {
         "channel": "push",
-        "app": push_app,
-        "to": push_to,
+        "app": push_app,     # from TOML
         "subject": subject,
         "body": body,
     }
@@ -101,17 +76,13 @@ def send_push(
         "X-API-Token": ok_api_token,
     }
 
-    resp = requests.post(
-        okame_endpoint,
-        json=payload,
-        headers=headers,
-        timeout=timeout_seconds,
-    )
+    resp = requests.post(okame_endpoint, json=payload, headers=headers, timeout=timeout_seconds)
+
+    print("Status:", resp.status_code)
+    print("Response:", resp.text)
 
     if 200 <= resp.status_code < 300:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Push sent via Okame.")
         return
 
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Okame push failed: {resp.status_code}")
-    print(resp.text)
-    resp.raise_for_status()
+    raise RuntimeError(f"Okame push failed: {resp.status_code} {resp.text}")

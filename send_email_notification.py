@@ -1,24 +1,15 @@
-"""
-send_email_notification.py
-
-Okame Email sender for Hyotoko.
-
-Sends email through:
-POST https://api.okame.xyz/v1/messages
-
-Secrets (must be in env):
-- OKAME_USER_KEY
-- OKAME_API_TOKEN
-
-This module keeps the legacy function signature used by older code:
-send_email(ip, timestamp, os_name, location, sender_email, receiver_email, google_pass)
-
-But now it sends via Okame, not SMTP.
-
-Preferred usage (from your jnd_cloudflare_DDNS.py):
-- Pass okame_endpoint / email_type / template / recipient from TOML
-- Pass name/location_label as optional overrides
-"""
+# send_email_notification.py
+#
+# Okame Email sender for Hyotoko
+#
+# Sends through:
+#   POST {okame_endpoint}   (example: https://api.okame.xyz/v1/messages)
+#
+# Secrets (env required):
+#   OKAME_USER_KEY
+#   OKAME_API_TOKEN
+#
+# Legacy signature preserved so existing callers don't break.
 
 from __future__ import annotations
 
@@ -46,60 +37,51 @@ def send_email(
     google_pass: str,
     *,
     okame_endpoint: str,
-    email_type: str = "html",          # "html" or "txt"
-    template: str = "welcome",
-    recipient: Optional[str] = None,   # if None, falls back to receiver_email (legacy)
+    email_type: str,
+    email_template: str,
+    email_recipient: str,
     subject: str = "📡 New IP from Hyotoko",
     name: Optional[str] = None,
     location_label: Optional[str] = None,
-    timeout_seconds: int = 15,
+    timeout_seconds: int = 10,
 ) -> None:
     """
-    Send an email via Okame.
+    Send an email through Okame.
 
-    Compatibility notes:
-    - sender_email + google_pass are ignored (kept only so old code doesn't break).
-    - receiver_email is used ONLY if recipient isn't provided.
-
-    Required:
-    - okame_endpoint (pass from TOML)
-    - OKAME_USER_KEY + OKAME_API_TOKEN in environment
+    - sender_email / google_pass are ignored (legacy compatibility only).
+    - email_recipient MUST come from TOML (single source of truth).
     """
-    now = datetime.now().strftime("%H:%M:%S")
-    print(f"[{now}] 📧 Sending email via Okame...")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] 📧 Sending email via Okame...")
 
     if not okame_endpoint:
-        raise RuntimeError("okame_endpoint is required (pass from TOML).")
+        raise RuntimeError("okame_endpoint is required (from TOML).")
+    if not email_type:
+        raise RuntimeError("email_type is required (from TOML).")
+    if not email_template:
+        raise RuntimeError("email_template is required (from TOML).")
+    if not email_recipient:
+        raise RuntimeError("email_recipient is required (from TOML).")
 
     ok_user_key = _require_env("OKAME_USER_KEY")
     ok_api_token = _require_env("OKAME_API_TOKEN")
 
-    # recipient priority: explicit param -> legacy receiver_email
-    to_email = (recipient or "").strip() or (receiver_email or "").strip()
-    if not to_email:
-        raise RuntimeError("Missing email recipient. Provide recipient=... or receiver_email.")
-
-    # Defaults that can still be overridden by caller/env
     if name is None:
         name = os.getenv("OKAME_EMAIL_NAME", "Tadeu")
+
     if location_label is None:
-        # Prefer explicit label, else use geo country if available, else env default, else Brazil
-        location_label = (
-            os.getenv("OKAME_LOCATION_LABEL")
-            or (location or {}).get("country")
-            or "Brazil"
-        )
+        # Prefer env override, else geo country, else a safe default
+        location_label = os.getenv("OKAME_LOCATION_LABEL") or location.get("country") or "Brazil"
 
     payload = {
         "channel": "email",
-        "emailType": email_type,
-        "to": to_email,
+        "emailType": email_type,     # "html" or "txt"
+        "to": email_recipient,
         "subject": subject,
-        "template": template,
+        "template": email_template,  # e.g. "ip_update"
         "context": {
             "name": name,
             "ip_address": ip,
-            "location": f'{location_label} 🇧🇷',
+            "location": location_label,
         },
     }
 
@@ -109,17 +91,13 @@ def send_email(
         "X-API-Token": ok_api_token,
     }
 
-    resp = requests.post(
-        okame_endpoint,
-        json=payload,
-        headers=headers,
-        timeout=timeout_seconds,
-    )
+    resp = requests.post(okame_endpoint, json=payload, headers=headers, timeout=timeout_seconds)
+
+    print("Status:", resp.status_code)
+    print("Response:", resp.text)
 
     if 200 <= resp.status_code < 300:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Email sent via Okame.")
         return
 
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Okame email failed: {resp.status_code}")
-    print(resp.text)
-    resp.raise_for_status()
+    raise RuntimeError(f"Okame email failed: {resp.status_code} {resp.text}")
